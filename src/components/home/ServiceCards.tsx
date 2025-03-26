@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Cooking, ShoppingBag, Heart, Home, Stethoscope, Calendar } from 'lucide-react';
+import { UtensilsCrossed, ShoppingBag, Heart, Home, Stethoscope, Calendar } from 'lucide-react';
 import AnimatedCard from '../ui/AnimatedCard';
 
 const ServiceCards = () => {
@@ -10,7 +10,7 @@ const ServiceCards = () => {
       id: 1,
       title: 'Meal Preparation',
       description: 'Nutritious meals tailored to dietary needs and preferences',
-      icon: <Cooking size={24} />,
+      icon: <UtensilsCrossed size={24} />,
       iconBg: 'bg-guardian-100',
       iconColor: 'text-guardian-600',
       link: '/services/meal-preparation'
