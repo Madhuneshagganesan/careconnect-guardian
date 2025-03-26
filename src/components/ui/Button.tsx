@@ -1,23 +1,26 @@
-
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'link' | 'warm';
   size?: 'sm' | 'md' | 'lg' | 'icon';
   isLoading?: boolean;
   fullWidth?: boolean;
+  children: React.ReactNode;
+  to?: string;
 }
 
-const Button = ({
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   className,
   children,
   variant = 'primary',
   size = 'md',
   isLoading = false,
   fullWidth = false,
+  to,
   ...props
-}: ButtonProps) => {
+}, ref) => {
   const baseStyles = 'inline-flex items-center justify-center rounded-full font-medium transition-all focus-ring';
   
   const variants = {
@@ -36,17 +39,34 @@ const Button = ({
     icon: 'w-10 h-10',
   };
   
+  const buttonClasses = cn(
+    baseStyles,
+    variants[variant],
+    sizes[size],
+    fullWidth && 'w-full',
+    isLoading && 'opacity-70 cursor-not-allowed',
+    className
+  );
+  
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className={buttonClasses}
+      >
+        {isLoading ? (
+          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        ) : null}
+        {children}
+      </Link>
+    );
+  }
+  
   return (
     <button
-      className={cn(
-        baseStyles,
-        variants[variant],
-        sizes[size],
-        fullWidth && 'w-full',
-        isLoading && 'opacity-70 cursor-not-allowed',
-        className
-      )}
+      className={buttonClasses}
       disabled={isLoading || props.disabled}
+      ref={ref}
       {...props}
     >
       {isLoading ? (
@@ -55,6 +75,8 @@ const Button = ({
       {children}
     </button>
   );
-};
+});
+
+Button.displayName = 'Button';
 
 export default Button;

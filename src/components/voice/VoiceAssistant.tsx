@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Mic, MicOff, Volume2, Volume, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
 import { Card } from '@/components/ui/card';
@@ -17,6 +18,7 @@ import {
 import { toast } from '@/components/ui/use-toast';
 
 const VoiceAssistant = () => {
+  const navigate = useNavigate();
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -110,16 +112,20 @@ const VoiceAssistant = () => {
       
       if (command.includes('book') && command.includes('service')) {
         responseText = "I can help you book a service. What type of care do you need?";
-        // In a real app, redirect to booking page or continue dialog
+        navigate('/book-service');
       } else if (command.includes('track') && (command.includes('caregiver') || command.includes('service'))) {
         responseText = "I'll check the status of your current service for you.";
-        // In a real app, show tracking info or redirect
+        navigate('/profile');
       } else if (command.includes('emergency') || command.includes('help immediately')) {
         responseText = "I'm alerting our emergency team right away. Help is on the way.";
-        // In a real app, trigger emergency protocol
+        toast({
+          title: "Emergency Alert",
+          description: "Our care team has been notified and will contact you immediately.",
+          variant: "destructive",
+        });
       } else if (command.includes('profile') || command.includes('account')) {
         responseText = "Opening your profile settings.";
-        // In a real app, redirect to profile
+        navigate('/profile');
       } else {
         responseText = "I'm sorry, I didn't understand that request. Can you try again?";
       }

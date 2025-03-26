@@ -1,18 +1,28 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Button from '@/components/ui/Button';
 import AnimatedCard from '@/components/ui/AnimatedCard';
-import { CheckCircle, Calendar, Clock, MapPin, Info, ArrowRight, ArrowLeft } from 'lucide-react';
+import { 
+  CheckCircle, Calendar, Clock, MapPin, Info, 
+  ArrowRight, ArrowLeft, Edit, AlertCircle 
+} from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 const BookService = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedService, setSelectedService] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedDuration, setSelectedDuration] = useState('');
   const [selectedCaregiverId, setSelectedCaregiverId] = useState<number | null>(null);
+  const [isAddressEditing, setIsAddressEditing] = useState(false);
+  const [address, setAddress] = useState('123 Main Street, Bangalore');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('upi');
   
   const services = [
     {
@@ -109,6 +119,39 @@ const BookService = () => {
       setCurrentStep(currentStep - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleAddressUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAddressEditing(false);
+    toast({
+      title: "Address Updated",
+      description: "Your service address has been updated successfully.",
+    });
+  };
+
+  const handleConfirmBooking = () => {
+    setIsSubmitting(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setIsSubmitting(false);
+      toast({
+        title: "Booking Confirmed!",
+        description: "Your service has been booked successfully. Check your profile for details.",
+      });
+      
+      // Redirect to profile page after booking
+      navigate('/profile');
+    }, 1500);
+  };
+
+  const handleSaveForLater = () => {
+    toast({
+      title: "Booking Saved",
+      description: "Your booking has been saved for later. You can access it from your profile.",
+    });
+    navigate('/profile');
   };
   
   const getStepContent = () => {
@@ -339,12 +382,37 @@ const BookService = () => {
                   <div className="w-6 h-6 mt-0.5 rounded-full bg-guardian-100 flex items-center justify-center mr-3">
                     <MapPin size={14} className="text-guardian-600" />
                   </div>
-                  <div>
+                  <div className="flex-grow">
                     <p className="font-medium">Location</p>
-                    <p className="text-muted-foreground">123 Main Street, Bangalore</p>
-                    <button className="text-sm text-guardian-600 font-medium mt-1">
-                      Change address
-                    </button>
+                    {isAddressEditing ? (
+                      <form onSubmit={handleAddressUpdate} className="mt-1">
+                        <div className="flex">
+                          <input 
+                            type="text" 
+                            value={address} 
+                            onChange={(e) => setAddress(e.target.value)}
+                            className="flex-grow border border-input rounded-l-md px-3 py-1 text-sm"
+                          />
+                          <button 
+                            type="submit" 
+                            className="bg-guardian-500 text-white rounded-r-md px-3 py-1 text-sm"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <p className="text-muted-foreground">{address}</p>
+                        <button 
+                          className="text-sm text-guardian-600 font-medium mt-1 flex items-center"
+                          onClick={() => setIsAddressEditing(true)}
+                        >
+                          <Edit size={14} className="mr-1" /> 
+                          Change address
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
                 
@@ -369,7 +437,7 @@ const BookService = () => {
             <AnimatedCard className="mb-6">
               <h3 className="text-lg font-medium mb-4">Payment Details</h3>
               
-              <div className="space-y-3 mb-4">
+              <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
                   <p className="text-muted-foreground">Service fee</p>
                   <p>₹350</p>
@@ -381,6 +449,53 @@ const BookService = () => {
                 <div className="flex justify-between">
                   <p className="text-muted-foreground">Convenience fee</p>
                   <p>₹99</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4 mb-4">
+                <h4 className="font-medium">Payment Method</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div 
+                    className={`border rounded-lg p-3 flex items-center cursor-pointer ${paymentMethod === 'upi' ? 'border-guardian-500 bg-guardian-50' : ''}`}
+                    onClick={() => setPaymentMethod('upi')}
+                  >
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-primary font-bold text-xs">UPI</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">UPI</p>
+                      <p className="text-xs text-muted-foreground">Pay directly from your bank</p>
+                    </div>
+                    {paymentMethod === 'upi' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
+                  </div>
+                  
+                  <div 
+                    className={`border rounded-lg p-3 flex items-center cursor-pointer ${paymentMethod === 'card' ? 'border-guardian-500 bg-guardian-50' : ''}`}
+                    onClick={() => setPaymentMethod('card')}
+                  >
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-primary font-bold text-xs">CC</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Credit Card</p>
+                      <p className="text-xs text-muted-foreground">All major cards accepted</p>
+                    </div>
+                    {paymentMethod === 'card' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
+                  </div>
+                  
+                  <div 
+                    className={`border rounded-lg p-3 flex items-center cursor-pointer ${paymentMethod === 'cash' ? 'border-guardian-500 bg-guardian-50' : ''}`}
+                    onClick={() => setPaymentMethod('cash')}
+                  >
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-primary font-bold text-xs">₹</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Cash</p>
+                      <p className="text-xs text-muted-foreground">Pay after service</p>
+                    </div>
+                    {paymentMethod === 'cash' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
+                  </div>
                 </div>
               </div>
               
@@ -400,11 +515,22 @@ const BookService = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button variant="primary" size="lg" fullWidth>
+              <Button 
+                variant="primary" 
+                size="lg" 
+                fullWidth 
+                isLoading={isSubmitting}
+                onClick={handleConfirmBooking}
+              >
+                {!isSubmitting && <CheckCircle size={18} className="ml-2" />}
                 Confirm Booking
-                <CheckCircle size={18} className="ml-2" />
               </Button>
-              <Button variant="outline" size="lg" fullWidth>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                fullWidth
+                onClick={handleSaveForLater}
+              >
                 Save for Later
               </Button>
             </div>
