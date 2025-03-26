@@ -4,6 +4,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import AnimatedCard from '@/components/ui/AnimatedCard';
 import Button from '@/components/ui/Button';
+import RequestCustomMatch from '@/components/forms/RequestCustomMatch';
 import { Link } from 'react-router-dom';
 import { Star, Filter, Search, MapPin, CheckCircle, Clock, Award } from 'lucide-react';
 
@@ -325,9 +326,13 @@ const Caregivers = () => {
               <p className="text-lg text-muted-foreground mb-6">
                 Let us know your specific requirements, and we'll help match you with the perfect caregiver.
               </p>
-              <Button variant="primary" size="lg">
-                Request a Custom Match
-              </Button>
+              <RequestCustomMatch 
+                trigger={
+                  <Button variant="primary" size="lg">
+                    Request a Custom Match
+                  </Button>
+                }
+              />
             </div>
           </div>
         </section>

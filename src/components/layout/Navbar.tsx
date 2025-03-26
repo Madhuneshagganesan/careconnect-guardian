@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Search, User, Bell } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import SearchDialog from '@/components/search/SearchDialog';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -70,12 +71,16 @@ const Navbar = () => {
           
           {/* Action Buttons */}
           <div className="flex items-center space-x-1 sm:space-x-3">
-            <button
-              className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-guardian-50 hover:text-guardian-500"
-              aria-label="Search"
-            >
-              <Search size={20} />
-            </button>
+            <SearchDialog
+              trigger={
+                <button
+                  className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-guardian-50 hover:text-guardian-500"
+                  aria-label="Search"
+                >
+                  <Search size={20} />
+                </button>
+              }
+            />
             
             <Link 
               to="/profile" 
