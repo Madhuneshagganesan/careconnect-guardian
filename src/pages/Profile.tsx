@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import AnimatedCard from '@/components/ui/AnimatedCard';
 import Button from '@/components/ui/Button';
-import { User, Edit, Bell, CreditCard, MapPin, Clock, CheckCircle, ArrowRight, Heart, LogOut, Settings } from 'lucide-react';
+import { User, Edit, Bell, CreditCard, MapPin, Clock, CheckCircle, ArrowRight, Heart, LogOut, Settings, Calendar, Star } from 'lucide-react';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
