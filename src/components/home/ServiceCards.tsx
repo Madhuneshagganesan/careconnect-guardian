@@ -13,7 +13,7 @@ const ServiceCards = () => {
       icon: <UtensilsCrossed size={24} />,
       iconBg: 'bg-guardian-100',
       iconColor: 'text-guardian-600',
-      link: '/services/meal-preparation'
+      link: '/services#meal-preparation'
     },
     {
       id: 2,
@@ -22,7 +22,7 @@ const ServiceCards = () => {
       icon: <ShoppingBag size={24} />,
       iconBg: 'bg-warm-100',
       iconColor: 'text-warm-600',
-      link: '/services/errands'
+      link: '/services#errands'
     },
     {
       id: 3,
@@ -31,7 +31,7 @@ const ServiceCards = () => {
       icon: <Heart size={24} />,
       iconBg: 'bg-guardian-100',
       iconColor: 'text-guardian-600',
-      link: '/services/personal-care'
+      link: '/services#personal-care'
     },
     {
       id: 4,
@@ -40,7 +40,7 @@ const ServiceCards = () => {
       icon: <Home size={24} />,
       iconBg: 'bg-warm-100',
       iconColor: 'text-warm-600',
-      link: '/services/household'
+      link: '/services#household'
     },
     {
       id: 5,
@@ -49,7 +49,7 @@ const ServiceCards = () => {
       icon: <Stethoscope size={24} />,
       iconBg: 'bg-guardian-100',
       iconColor: 'text-guardian-600',
-      link: '/services/medical'
+      link: '/services#medical'
     },
     {
       id: 6,
@@ -58,7 +58,7 @@ const ServiceCards = () => {
       icon: <Calendar size={24} />,
       iconBg: 'bg-warm-100',
       iconColor: 'text-warm-600',
-      link: '/services/companionship'
+      link: '/services#companionship'
     }
   ];
 

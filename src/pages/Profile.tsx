@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
@@ -459,7 +458,7 @@ const Profile = () => {
                           className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
                         ></label>
                       </div>
-                      <style jsx>{`
+                      <style>{`
                         .toggle-checkbox:checked {
                           right: 0;
                           border-color: #10B981;
