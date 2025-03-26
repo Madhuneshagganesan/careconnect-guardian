@@ -23,7 +23,7 @@ const HowItWorks = () => {
     {
       id: 3,
       title: 'Track in Real-time',
-      description: 'Monitor your caregiver's location and ETA from the moment they accept your request.',
+      description: "Monitor your caregiver's location and ETA from the moment they accept your request.",
       icon: <MapPin size={24} />,
       iconBg: 'bg-guardian-100',
       iconColor: 'text-guardian-600'
