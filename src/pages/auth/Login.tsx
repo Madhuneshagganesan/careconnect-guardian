@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import Button from '@/components/ui/Button';
@@ -14,7 +14,11 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+  
+  // Get the redirect path from location state or default to home
+  const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +30,7 @@ const Login = () => {
         title: "Login successful",
         description: "Welcome back to Guardian Go!",
       });
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (error) {
       toast({
         title: "Login failed",

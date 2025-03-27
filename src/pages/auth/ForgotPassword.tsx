@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import Button from '@/components/ui/Button';
@@ -11,6 +11,7 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +35,10 @@ const ForgotPassword = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleReturnHome = () => {
+    navigate('/');
   };
 
   return (
@@ -66,11 +71,13 @@ const ForgotPassword = () => {
               >
                 Try again with a different email
               </Button>
-              <Link to="/login">
-                <Button variant="primary" className="w-full">
-                  Back to login
-                </Button>
-              </Link>
+              <Button 
+                variant="primary" 
+                className="w-full"
+                onClick={handleReturnHome}
+              >
+                Return to Home
+              </Button>
             </div>
           </div>
         ) : (

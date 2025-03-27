@@ -13,7 +13,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from '@/components/ui/use-toast';
 
@@ -102,47 +101,55 @@ const VoiceAssistant = () => {
     stopListening();
     
     try {
-      // In a real app, you would send the transcript to your backend/API
-      // For this demo, we'll simulate a response
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Process common voice commands
-      let responseText = '';
+      // Improved command processing with better matching
       const command = transcript.toLowerCase();
+      let responseText = '';
+      let navigationPath = '';
+      let navigationDelay = 1500;
       
-      if (command.includes('book') && (command.includes('service') || command.includes('caregiver'))) {
+      // Helper function to check if command contains any of the keywords
+      const containsAny = (keywords: string[]) => {
+        return keywords.some(keyword => command.includes(keyword));
+      };
+      
+      // Navigation commands
+      if (containsAny(['home', 'main page', 'go home'])) {
+        responseText = "Taking you to the home page.";
+        navigationPath = '/';
+      } 
+      else if (containsAny(['book', 'service', 'appointment']) && !command.includes('how')) {
         responseText = "I can help you book a service. Taking you to the booking page now.";
-        setTimeout(() => navigate('/book-service'), 1500);
+        navigationPath = '/book-service';
       } 
-      else if (command.includes('find') && command.includes('caregiver')) {
+      else if (containsAny(['find caregiver', 'show caregiver', 'caregivers list', 'all caregivers'])) {
         responseText = "Let me show you our available caregivers.";
-        setTimeout(() => navigate('/caregivers'), 1500);
+        navigationPath = '/caregivers';
       }
-      else if (command.includes('track') && (command.includes('caregiver') || command.includes('service'))) {
+      else if (containsAny(['track', 'tracking', 'where is', 'location']) && containsAny(['caregiver', 'service'])) {
         responseText = "I'll check the status of your current service for you.";
-        setTimeout(() => navigate('/profile'), 1500);
+        navigationPath = '/profile';
       } 
-      else if (command.includes('profile') || command.includes('account')) {
+      else if (containsAny(['profile', 'account', 'my account', 'settings'])) {
         responseText = "Opening your profile settings.";
-        setTimeout(() => navigate('/profile'), 1500);
+        navigationPath = '/profile';
       }
-      else if (command.includes('services') || command.includes('what services')) {
+      else if (containsAny(['services', 'what services', 'offerings', 'what do you offer'])) {
         responseText = "Here are the services we offer.";
-        setTimeout(() => navigate('/services'), 1500);
+        navigationPath = '/services';
       }
-      else if (command.includes('how') && command.includes('work')) {
+      else if (containsAny(['how', 'works', 'process']) && !containsAny(['login', 'sign'])) {
         responseText = "Let me show you how Guardian Go works.";
-        setTimeout(() => navigate('/how-it-works'), 1500);
+        navigationPath = '/how-it-works';
       }
-      else if (command.includes('about')) {
+      else if (containsAny(['about', 'company', 'who are you'])) {
         responseText = "Taking you to our About Us page.";
-        setTimeout(() => navigate('/about'), 1500);
+        navigationPath = '/about';
       }
-      else if (command.includes('contact') || command.includes('help')) {
+      else if (containsAny(['contact', 'help', 'support', 'assistance'])) {
         responseText = "You can contact our support team through your profile page. Taking you there now.";
-        setTimeout(() => navigate('/profile'), 1500);
+        navigationPath = '/profile';
       }
-      else if (command.includes('emergency') || command.includes('help immediately')) {
+      else if (containsAny(['emergency', 'help immediately', 'urgent', 'emergency help'])) {
         responseText = "I'm alerting our emergency team right away. Help is on the way.";
         toast({
           title: "Emergency Alert",
@@ -150,17 +157,21 @@ const VoiceAssistant = () => {
           variant: "destructive",
         });
       } 
-      else if (command.includes('login') || command.includes('sign in')) {
+      else if (containsAny(['login', 'sign in', 'log in'])) {
         responseText = "Taking you to the login page.";
-        setTimeout(() => navigate('/login'), 1500);
+        navigationPath = '/login';
       }
-      else if (command.includes('sign up') || command.includes('register')) {
+      else if (containsAny(['sign up', 'register', 'create account', 'join'])) {
         responseText = "Taking you to the sign up page.";
-        setTimeout(() => navigate('/signup'), 1500);
+        navigationPath = '/signup';
       }
-      else if (command.includes('log out') || command.includes('sign out')) {
+      else if (containsAny(['log out', 'sign out', 'logout'])) {
         responseText = "Do you want me to log you out?";
         // This would require additional confirmation in a real app
+      }
+      else if (containsAny(['request match', 'custom match', 'special needs', 'specific caregiver'])) {
+        responseText = "I'll help you request a custom match for your specific needs.";
+        navigationPath = '/book-service';
       }
       else {
         responseText = "I'm sorry, I didn't understand that request. You can ask me to book a service, find caregivers, track your service, view your profile, or get help.";
@@ -168,6 +179,11 @@ const VoiceAssistant = () => {
       
       setResponse(responseText);
       speakResponse(responseText);
+      
+      // Navigate if a path was set
+      if (navigationPath) {
+        setTimeout(() => navigate(navigationPath), navigationDelay);
+      }
     } catch (error) {
       console.error('Error processing voice command', error);
       toast({
