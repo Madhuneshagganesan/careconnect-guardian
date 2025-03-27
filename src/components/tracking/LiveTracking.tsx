@@ -1,9 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, Navigation } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MapPin, Clock, Navigation, ChevronDown, ChevronUp, Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { toast } from '@/components/ui/use-toast';
 
 interface Caregiver {
   id: string;
@@ -20,6 +26,9 @@ interface Caregiver {
 const LiveTracking = () => {
   const [caregiver, setCaregiver] = useState<Caregiver | null>(null);
   const [progress, setProgress] = useState(0);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
   
   // Simulate caregiver location updates
   useEffect(() => {
@@ -54,6 +63,62 @@ const LiveTracking = () => {
     return () => clearInterval(interval);
   }, []);
   
+  // Initialize map when map container is visible
+  useEffect(() => {
+    if (isMapOpen && mapRef.current && caregiver && !mapInstanceRef.current) {
+      // Simulate map initialization
+      // In a real app, this would use a map library like Google Maps, Mapbox, etc.
+      const mockMapInit = () => {
+        const mapDiv = mapRef.current;
+        if (!mapDiv) return;
+        
+        // Create a mock map for demonstration purposes
+        const mapHTML = `
+          <div class="relative w-full h-full">
+            <div class="absolute inset-0 flex items-center justify-center bg-guardian-50 rounded-lg">
+              <div class="text-center">
+                <div class="w-10 h-10 bg-guardian-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white">
+                  <MapPin size={20} />
+                </div>
+                <p class="font-medium text-guardian-700">Caregiver Location</p>
+                <p class="text-sm text-guardian-600">Lat: ${caregiver.location.lat.toFixed(4)}, Lng: ${caregiver.location.lng.toFixed(4)}</p>
+                <div class="mt-4 text-center">
+                  <p class="text-sm text-muted-foreground">This is a mock map for demonstration</p>
+                  <p class="text-sm text-muted-foreground">In a real app, this would show a real map with live tracking</p>
+                </div>
+              </div>
+            </div>
+            <div class="absolute bottom-4 right-4 z-10">
+              <div class="bg-white p-2 rounded-lg shadow-md">
+                <Button variant="outline" size="sm" class="h-8 w-8 p-0" title="Zoom In">+</Button>
+                <Button variant="outline" size="sm" class="h-8 w-8 p-0 mt-1" title="Zoom Out">-</Button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        mapDiv.innerHTML = mapHTML;
+        mapInstanceRef.current = true;
+      };
+      
+      mockMapInit();
+    }
+  }, [isMapOpen, caregiver]);
+  
+  const contactCaregiver = (method: 'call' | 'message') => {
+    if (method === 'call') {
+      toast({
+        title: "Calling caregiver",
+        description: "Connecting to Sarah Johnson...",
+      });
+    } else {
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent to Sarah Johnson.",
+      });
+    }
+  };
+  
   if (!caregiver) {
     return (
       <Card className="p-6 shadow-md w-full max-w-md mx-auto">
@@ -86,9 +151,24 @@ const LiveTracking = () => {
             <span className="capitalize">{caregiver.status.replace('-', ' ')}</span>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="ml-auto">
-          Contact
-        </Button>
+        <div className="flex gap-2 ml-auto">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-9 w-9 rounded-full" 
+            onClick={() => contactCaregiver('call')}
+          >
+            <Phone size={18} />
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-9 w-9 rounded-full"
+            onClick={() => contactCaregiver('message')}
+          >
+            <MessageSquare size={18} />
+          </Button>
+        </div>
       </div>
       
       <div className="space-y-4">
@@ -117,6 +197,26 @@ const LiveTracking = () => {
                 </div>
               </div>
             </div>
+            
+            <Collapsible
+              open={isMapOpen}
+              onOpenChange={setIsMapOpen}
+              className="w-full border rounded-lg overflow-hidden"
+            >
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="flex w-full justify-between p-4 h-auto">
+                  <span>View Map</span>
+                  {isMapOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div ref={mapRef} className="h-[250px] w-full" />
+              </CollapsibleContent>
+            </Collapsible>
           </>
         )}
         

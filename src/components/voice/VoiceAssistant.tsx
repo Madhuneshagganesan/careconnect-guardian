@@ -104,30 +104,66 @@ const VoiceAssistant = () => {
     try {
       // In a real app, you would send the transcript to your backend/API
       // For this demo, we'll simulate a response
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Process common voice commands
       let responseText = '';
       const command = transcript.toLowerCase();
       
-      if (command.includes('book') && command.includes('service')) {
-        responseText = "I can help you book a service. What type of care do you need?";
-        navigate('/book-service');
-      } else if (command.includes('track') && (command.includes('caregiver') || command.includes('service'))) {
+      if (command.includes('book') && (command.includes('service') || command.includes('caregiver'))) {
+        responseText = "I can help you book a service. Taking you to the booking page now.";
+        setTimeout(() => navigate('/book-service'), 1500);
+      } 
+      else if (command.includes('find') && command.includes('caregiver')) {
+        responseText = "Let me show you our available caregivers.";
+        setTimeout(() => navigate('/caregivers'), 1500);
+      }
+      else if (command.includes('track') && (command.includes('caregiver') || command.includes('service'))) {
         responseText = "I'll check the status of your current service for you.";
-        navigate('/profile');
-      } else if (command.includes('emergency') || command.includes('help immediately')) {
+        setTimeout(() => navigate('/profile'), 1500);
+      } 
+      else if (command.includes('profile') || command.includes('account')) {
+        responseText = "Opening your profile settings.";
+        setTimeout(() => navigate('/profile'), 1500);
+      }
+      else if (command.includes('services') || command.includes('what services')) {
+        responseText = "Here are the services we offer.";
+        setTimeout(() => navigate('/services'), 1500);
+      }
+      else if (command.includes('how') && command.includes('work')) {
+        responseText = "Let me show you how Guardian Go works.";
+        setTimeout(() => navigate('/how-it-works'), 1500);
+      }
+      else if (command.includes('about')) {
+        responseText = "Taking you to our About Us page.";
+        setTimeout(() => navigate('/about'), 1500);
+      }
+      else if (command.includes('contact') || command.includes('help')) {
+        responseText = "You can contact our support team through your profile page. Taking you there now.";
+        setTimeout(() => navigate('/profile'), 1500);
+      }
+      else if (command.includes('emergency') || command.includes('help immediately')) {
         responseText = "I'm alerting our emergency team right away. Help is on the way.";
         toast({
           title: "Emergency Alert",
           description: "Our care team has been notified and will contact you immediately.",
           variant: "destructive",
         });
-      } else if (command.includes('profile') || command.includes('account')) {
-        responseText = "Opening your profile settings.";
-        navigate('/profile');
-      } else {
-        responseText = "I'm sorry, I didn't understand that request. Can you try again?";
+      } 
+      else if (command.includes('login') || command.includes('sign in')) {
+        responseText = "Taking you to the login page.";
+        setTimeout(() => navigate('/login'), 1500);
+      }
+      else if (command.includes('sign up') || command.includes('register')) {
+        responseText = "Taking you to the sign up page.";
+        setTimeout(() => navigate('/signup'), 1500);
+      }
+      else if (command.includes('log out') || command.includes('sign out')) {
+        responseText = "Do you want me to log you out?";
+        // This would require additional confirmation in a real app
+      }
+      else {
+        responseText = "I'm sorry, I didn't understand that request. You can ask me to book a service, find caregivers, track your service, view your profile, or get help.";
       }
       
       setResponse(responseText);
@@ -192,7 +228,7 @@ const VoiceAssistant = () => {
               </Button>
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Ask me to book a service, track your caregiver, or get help with your account.
+              Ask me to book a service, find caregivers, track your caregiver, or get help with your account.
             </AlertDialogDescription>
           </AlertDialogHeader>
           
