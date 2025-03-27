@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, MicOff, Volume2, Volume, Loader2, X } from 'lucide-react';
@@ -95,7 +94,7 @@ const VoiceAssistant = () => {
     setIsListening(false);
   };
 
-  // Enhanced command processing with NLP-like matching
+  // Enhanced command processing with improved navigation matching
   const processVoiceCommand = async () => {
     if (!transcript.trim()) return;
     
@@ -110,12 +109,71 @@ const VoiceAssistant = () => {
       ];
       setConversationHistory(updatedHistory);
       
-      const command = transcript.toLowerCase();
+      const command = transcript.toLowerCase().trim();
       let responseText = '';
       let navigationPath = '';
-      let navigationDelay = 1500;
+      let navigationDelay = 1000;
 
-      // Advanced intent categories
+      // Direct navigation commands with multiple variations
+      const navigationCommands = {
+        // Home page navigation
+        'go to home': { path: '/', response: "Taking you to the home page." },
+        'go to home page': { path: '/', response: "Taking you to the home page." },
+        'home page': { path: '/', response: "Navigating to the home page." },
+        'go home': { path: '/', response: "Taking you home." },
+        'homepage': { path: '/', response: "Going to the homepage." },
+        'main page': { path: '/', response: "Taking you to the main page." },
+        
+        // Caregivers page navigation
+        'go to caregivers': { path: '/caregivers', response: "Taking you to the caregivers page." },
+        'go to caregivers page': { path: '/caregivers', response: "Navigating to the caregivers page." },
+        'caregivers page': { path: '/caregivers', response: "Going to the caregivers page." },
+        'show caregivers': { path: '/caregivers', response: "Showing you our caregivers." },
+        'find caregivers': { path: '/caregivers', response: "Let's find you a caregiver." },
+        'find caregiver': { path: '/caregivers', response: "Let's find you a caregiver." },
+        
+        // How it works page navigation
+        'go to how it works': { path: '/how-it-works', response: "Taking you to the how it works page." },
+        'go to how it works page': { path: '/how-it-works', response: "Navigating to how it works." },
+        'how it works page': { path: '/how-it-works', response: "Going to the how it works page." },
+        'how it works': { path: '/how-it-works', response: "Let me explain how it works." },
+        'how does it work': { path: '/how-it-works', response: "Let me show you how it works." },
+        'go to how it waorks page': { path: '/how-it-works', response: "Taking you to how it works page." }, // Handle common typo
+        'how it waorks page': { path: '/how-it-works', response: "Going to the how it works page." }, // Handle common typo
+        
+        // About us page navigation
+        'go to about': { path: '/about', response: "Taking you to the about us page." },
+        'go to about us': { path: '/about', response: "Navigating to about us." },
+        'go to about us page': { path: '/about', response: "Taking you to the about us page." },
+        'about us page': { path: '/about', response: "Going to the about us page." },
+        'about us': { path: '/about', response: "Let me tell you about us." },
+        'about': { path: '/about', response: "Going to the about page." },
+        
+        // Book service page navigation
+        'go to book a caregiver': { path: '/book-service', response: "Taking you to book a caregiver." },
+        'go to book a caregiver page': { path: '/book-service', response: "Navigating to book a caregiver." },
+        'book a caregiver': { path: '/book-service', response: "Let's book a caregiver for you." },
+        'book a caregiver page': { path: '/book-service', response: "Going to book a caregiver page." },
+        'book caregiver': { path: '/book-service', response: "Let's book a caregiver." },
+        'book service': { path: '/book-service', response: "Let's book a service for you." },
+        'book a service': { path: '/book-service', response: "Taking you to book a service." },
+        
+        // Profile page navigation
+        'go to profile': { path: '/profile', response: "Taking you to your profile." },
+        'go to profile page': { path: '/profile', response: "Navigating to your profile." },
+        'profile page': { path: '/profile', response: "Going to your profile page." },
+        'my profile': { path: '/profile', response: "Taking you to your profile." },
+        'profile': { path: '/profile', response: "Going to your profile." },
+        
+        // Services page navigation
+        'go to services': { path: '/services', response: "Taking you to our services." },
+        'go to services page': { path: '/services', response: "Navigating to services page." },
+        'services page': { path: '/services', response: "Going to the services page." },
+        'our services': { path: '/services', response: "Let me show you our services." },
+        'services': { path: '/services', response: "Going to services." }
+      };
+      
+      // Service categories mapping remains the same
       const serviceCategories = {
         'cooking': { path: '/services', response: "I found our cooking assistance services. Let me take you there." },
         'cooking help': { path: '/services', response: "We offer cooking assistance services. Let me show you those options." },
@@ -138,124 +196,97 @@ const VoiceAssistant = () => {
         'fitness': { path: '/services', response: "Our caregivers can assist with fitness routines. Taking you to services." },
       };
       
-      // Navigation commands mapping for direct matches
-      const navigationCommands = {
-        'home': { path: '/', response: "Taking you to the home page." },
-        'main page': { path: '/', response: "Taking you to the main page." },
-        'go home': { path: '/', response: "Taking you to the home page." },
-        'homepage': { path: '/', response: "Taking you to the homepage." },
+      // Advanced fuzzy matching function to handle slight variations in commands
+      const findBestCommandMatch = (userCommand: string) => {
+        // First check for exact matches in our navigation commands
+        if (navigationCommands[userCommand]) {
+          return { type: 'navigation', data: navigationCommands[userCommand] };
+        }
         
-        'book': { path: '/book-service', response: "Let's book a service for you." },
-        'book service': { path: '/book-service', response: "Taking you to book a service." },
-        'book a service': { path: '/book-service', response: "Let's get you set up with a service booking." },
-        'appointment': { path: '/book-service', response: "Let's set up an appointment for you." },
-        'schedule': { path: '/book-service', response: "Let's schedule a service for you." },
+        // Check for exact matches in our service categories
+        if (serviceCategories[userCommand]) {
+          return { type: 'service', data: serviceCategories[userCommand] };
+        }
         
-        'caregivers': { path: '/caregivers', response: "Here are our available caregivers." },
-        'caregiver': { path: '/caregivers', response: "Let me show you our caregivers." },
-        'find caregiver': { path: '/caregivers', response: "Let's find the right caregiver for you." },
-        'find caregivers': { path: '/caregivers', response: "Let me help you find caregivers." },
-        'show caregiver': { path: '/caregivers', response: "Here are our caregivers." },
-        'show caregivers': { path: '/caregivers', response: "Let me show you our available caregivers." },
-        'all caregivers': { path: '/caregivers', response: "Here's a list of all our caregivers." },
-        
-        'profile': { path: '/profile', response: "Taking you to your profile." },
-        'my profile': { path: '/profile', response: "Here's your profile information." },
-        'account': { path: '/profile', response: "Taking you to your account settings." },
-        'my account': { path: '/profile', response: "Here's your account information." },
-        'settings': { path: '/profile', response: "Here are your account settings." },
-        
-        'services': { path: '/services', response: "Here are all the services we offer." },
-        'our services': { path: '/services', response: "Let me show you our services." },
-        'what services': { path: '/services', response: "Here's information about our services." },
-        'your services': { path: '/services', response: "These are the services we provide." },
-        'offerings': { path: '/services', response: "Here are our service offerings." },
-        
-        'how it works': { path: '/how-it-works', response: "Let me explain how our service works." },
-        'how does it work': { path: '/how-it-works', response: "Here's information on how our service works." },
-        'process': { path: '/how-it-works', response: "Let me show you our process." },
-        'how guardian go works': { path: '/how-it-works', response: "Here's how Guardian Go works." },
-        
-        'about': { path: '/about', response: "Here's information about our company." },
-        'about us': { path: '/about', response: "Let me tell you about our company." },
-        'company': { path: '/about', response: "Here's information about our company." },
-        'who are you': { path: '/about', response: "Let me tell you about who we are." }
-      };
-      
-      // Contextual intent detection
-      const findIntent = () => {
-        // Check for exact navigational matches first
+        // If no exact match, look for partial matches in navigation commands
         for (const [phrase, data] of Object.entries(navigationCommands)) {
-          if (command.includes(phrase)) {
-            return { path: data.path, response: data.response };
+          if (userCommand.includes(phrase)) {
+            return { type: 'navigation', data };
           }
         }
         
-        // Check for service category matches
+        // Look for partial matches in service categories
         for (const [category, data] of Object.entries(serviceCategories)) {
-          if (command.includes(category)) {
-            return { path: data.path, response: data.response };
+          if (userCommand.includes(category)) {
+            return { type: 'service', data };
           }
         }
         
-        // Advanced intent detection for complex queries
-        if (command.includes('help') || command.includes('need assistance')) {
-          return { path: '/services', response: "I can help you find the right service. Taking you to our services page." };
+        // Look for key words/phrases in the command
+        if (/home|main|start/i.test(userCommand)) {
+          return { type: 'navigation', data: navigationCommands['go to home'] };
         }
         
-        if (command.includes('find') || command.includes('search') || command.includes('looking for')) {
-          if (command.includes('care') || command.includes('help')) {
-            return { path: '/services', response: "Let me help you find the care services you need." };
-          }
-          return { path: '/caregivers', response: "Let me help you find the right caregiver for your needs." };
+        if (/caregiver|care giver|find care/i.test(userCommand)) {
+          return { type: 'navigation', data: navigationCommands['go to caregivers'] };
         }
         
-        if (command.includes('emergency') || command.includes('urgent')) {
-          return { 
-            path: null, 
-            response: "I understand this is urgent. I'm alerting our emergency team right away. Help is on the way." 
-          };
+        if (/how|works|process|steps/i.test(userCommand)) {
+          return { type: 'navigation', data: navigationCommands['go to how it works'] };
         }
         
-        // Payment related queries
-        if (command.includes('payment') || command.includes('pay') || command.includes('cost') || command.includes('price')) {
-          return { 
-            path: '/book-service', 
-            response: "We accept cash on delivery as our payment method. Let me take you to our booking page for more details." 
-          };
+        if (/about|us|company|who/i.test(userCommand)) {
+          return { type: 'navigation', data: navigationCommands['go to about us'] };
         }
         
+        if (/book|service|appointment|schedule/i.test(userCommand)) {
+          return { type: 'navigation', data: navigationCommands['go to book a caregiver'] };
+        }
+        
+        if (/profile|account|my info|settings/i.test(userCommand)) {
+          return { type: 'navigation', data: navigationCommands['go to profile'] };
+        }
+        
+        if (/services|offerings|help|assistance/i.test(userCommand)) {
+          return { type: 'navigation', data: navigationCommands['go to services'] };
+        }
+        
+        // If no match found
         return null;
       };
       
-      // Process the intent
-      const intent = findIntent();
+      // Find the best match for the command
+      const match = findBestCommandMatch(command);
       
-      if (intent) {
-        navigationPath = intent.path;
-        responseText = intent.response;
-        
-        // Handle special cases like emergency
-        if (intent.path === null && intent.response.includes('emergency')) {
-          toast({
-            title: "Emergency Alert",
-            description: "Our care team has been notified and will contact you immediately.",
-            variant: "destructive",
-          });
-        }
+      if (match) {
+        navigationPath = match.data.path;
+        responseText = match.data.response;
       } else {
-        // Conversational fallback
-        if (command.includes('hello') || command.includes('hi') || command.includes('hey')) {
-          responseText = "Hello! I'm your Guardian Go assistant. How can I help you today?";
-        } 
-        else if (command.includes('thank')) {
-          responseText = "You're welcome! Is there anything else I can help you with?";
-        }
-        else if (command.includes('bye') || command.includes('goodbye')) {
-          responseText = "Goodbye! Feel free to ask for help anytime.";
-        }
-        else {
-          responseText = "I'm not sure I understood that. You can ask me to navigate to different pages like 'go to home', 'show caregivers', or ask about specific services like 'cooking help' or 'medication assistance'.";
+        // Handle search-like queries
+        if (command.includes('search') || command.includes('find') || command.includes('looking for')) {
+          // Extract what they're searching for
+          let searchTerm = command.replace(/search for|search|find|looking for|i need|i want/gi, '').trim();
+          
+          if (searchTerm) {
+            responseText = `I'll help you find information about "${searchTerm}". Let me take you to our services page where you can explore options.`;
+            navigationPath = '/services';
+          } else {
+            responseText = "What would you like me to search for? You can say things like 'find cooking help' or 'search for medication assistance'.";
+          }
+        } else {
+          // Conversational fallback
+          if (command.includes('hello') || command.includes('hi') || command.includes('hey')) {
+            responseText = "Hello! I'm your Guardian Go assistant. How can I help you today? You can ask me to navigate to different pages like 'go to home page' or 'show caregivers'.";
+          } 
+          else if (command.includes('thank')) {
+            responseText = "You're welcome! Is there anything else I can help you with?";
+          }
+          else if (command.includes('bye') || command.includes('goodbye')) {
+            responseText = "Goodbye! Feel free to ask for help anytime.";
+          }
+          else {
+            responseText = "I'm not sure I understood that. You can try saying 'go to home page', 'go to caregivers page', 'go to how it works page', 'go to about us page', or 'go to book a caregiver page'.";
+          }
         }
       }
       
@@ -312,7 +343,7 @@ const VoiceAssistant = () => {
     if (transcript && isListening) {
       const timeoutId = setTimeout(() => {
         processVoiceCommand();
-      }, 2000);
+      }, 1500); // Reduced slightly to be more responsive
       
       return () => clearTimeout(timeoutId);
     }
@@ -343,7 +374,7 @@ const VoiceAssistant = () => {
               </Button>
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Try saying "Find cooking help" or "I need medical assistance" to find relevant services, or navigate directly with "Go to how it works".
+              Try saying "Go to home page", "Go to caregivers page", "Go to how it works page", "Go to about us page", or "Go to book a caregiver page".
             </AlertDialogDescription>
           </AlertDialogHeader>
           
