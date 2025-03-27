@@ -24,6 +24,7 @@ const VoiceAssistant = () => {
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState<{role: string, content: string}[]>([]);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
@@ -93,7 +94,8 @@ const VoiceAssistant = () => {
     }
     setIsListening(false);
   };
-  
+
+  // Enhanced command processing with NLP-like matching
   const processVoiceCommand = async () => {
     if (!transcript.trim()) return;
     
@@ -101,85 +103,167 @@ const VoiceAssistant = () => {
     stopListening();
     
     try {
-      // Enhanced command processing with better matching
+      // Add user input to conversation history
+      const updatedHistory = [
+        ...conversationHistory,
+        { role: 'user', content: transcript }
+      ];
+      setConversationHistory(updatedHistory);
+      
       const command = transcript.toLowerCase();
       let responseText = '';
       let navigationPath = '';
       let navigationDelay = 1500;
+
+      // Advanced intent categories
+      const serviceCategories = {
+        'cooking': { path: '/services', response: "I found our cooking assistance services. Let me take you there." },
+        'cooking help': { path: '/services', response: "We offer cooking assistance services. Let me show you those options." },
+        'meal preparation': { path: '/services', response: "Our caregivers can help with meal preparation. Let me show you our services." },
+        'cleaning': { path: '/services', response: "I found our home cleaning services. Let me take you there." },
+        'housekeeping': { path: '/services', response: "We offer housekeeping services. Let me show you those options." },
+        'medication': { path: '/services', response: "Our medication management services are available. Taking you to the services page." },
+        'medicine': { path: '/services', response: "We can help with medicine management. Let me show you our services." },
+        'doctor': { path: '/services', response: "We can coordinate with doctors and medical appointments. Taking you to services." },
+        'medical': { path: '/services', response: "We offer medical assistance services. Taking you to the services page." },
+        'transportation': { path: '/services', response: "Our transportation services can help you get around. Let me show you the details." },
+        'drive': { path: '/services', response: "We provide transportation services. Let me take you to that section." },
+        'shopping': { path: '/services', response: "We can help with shopping. Let me show you our services." },
+        'grocery': { path: '/services', response: "Our caregivers can assist with grocery shopping. Let me show you our services." },
+        'companionship': { path: '/services', response: "We offer companionship services. Let me take you to that section." },
+        'company': { path: '/services', response: "Our companionship services provide social interaction. Let me show you the details." },
+        'personal care': { path: '/services', response: "We provide personal care services. Let me show you that section." },
+        'bathing': { path: '/services', response: "Our personal care services include bathing assistance. Let me take you to services." },
+        'exercise': { path: '/services', response: "We can help with exercise and physical activity. Let me show you our services." },
+        'fitness': { path: '/services', response: "Our caregivers can assist with fitness routines. Taking you to services." },
+      };
       
       // Navigation commands mapping for direct matches
       const navigationCommands = {
-        'home': '/',
-        'main page': '/',
-        'go home': '/',
-        'homepage': '/',
+        'home': { path: '/', response: "Taking you to the home page." },
+        'main page': { path: '/', response: "Taking you to the main page." },
+        'go home': { path: '/', response: "Taking you to the home page." },
+        'homepage': { path: '/', response: "Taking you to the homepage." },
         
-        'book': '/book-service',
-        'book service': '/book-service',
-        'book a service': '/book-service',
-        'appointment': '/book-service',
-        'schedule': '/book-service',
+        'book': { path: '/book-service', response: "Let's book a service for you." },
+        'book service': { path: '/book-service', response: "Taking you to book a service." },
+        'book a service': { path: '/book-service', response: "Let's get you set up with a service booking." },
+        'appointment': { path: '/book-service', response: "Let's set up an appointment for you." },
+        'schedule': { path: '/book-service', response: "Let's schedule a service for you." },
         
-        'caregivers': '/caregivers',
-        'find caregiver': '/caregivers',
-        'find caregivers': '/caregivers',
-        'show caregiver': '/caregivers',
-        'show caregivers': '/caregivers',
-        'all caregivers': '/caregivers',
+        'caregivers': { path: '/caregivers', response: "Here are our available caregivers." },
+        'caregiver': { path: '/caregivers', response: "Let me show you our caregivers." },
+        'find caregiver': { path: '/caregivers', response: "Let's find the right caregiver for you." },
+        'find caregivers': { path: '/caregivers', response: "Let me help you find caregivers." },
+        'show caregiver': { path: '/caregivers', response: "Here are our caregivers." },
+        'show caregivers': { path: '/caregivers', response: "Let me show you our available caregivers." },
+        'all caregivers': { path: '/caregivers', response: "Here's a list of all our caregivers." },
         
-        'profile': '/profile',
-        'my profile': '/profile',
-        'account': '/profile',
-        'my account': '/profile',
-        'settings': '/profile',
+        'profile': { path: '/profile', response: "Taking you to your profile." },
+        'my profile': { path: '/profile', response: "Here's your profile information." },
+        'account': { path: '/profile', response: "Taking you to your account settings." },
+        'my account': { path: '/profile', response: "Here's your account information." },
+        'settings': { path: '/profile', response: "Here are your account settings." },
         
-        'services': '/services',
-        'our services': '/services',
-        'what services': '/services',
-        'offerings': '/services',
+        'services': { path: '/services', response: "Here are all the services we offer." },
+        'our services': { path: '/services', response: "Let me show you our services." },
+        'what services': { path: '/services', response: "Here's information about our services." },
+        'your services': { path: '/services', response: "These are the services we provide." },
+        'offerings': { path: '/services', response: "Here are our service offerings." },
         
-        'how it works': '/how-it-works',
-        'how does it work': '/how-it-works',
-        'process': '/how-it-works',
-        'how guardian go works': '/how-it-works',
+        'how it works': { path: '/how-it-works', response: "Let me explain how our service works." },
+        'how does it work': { path: '/how-it-works', response: "Here's information on how our service works." },
+        'process': { path: '/how-it-works', response: "Let me show you our process." },
+        'how guardian go works': { path: '/how-it-works', response: "Here's how Guardian Go works." },
         
-        'about': '/about',
-        'about us': '/about',
-        'company': '/about',
-        'who are you': '/about'
+        'about': { path: '/about', response: "Here's information about our company." },
+        'about us': { path: '/about', response: "Let me tell you about our company." },
+        'company': { path: '/about', response: "Here's information about our company." },
+        'who are you': { path: '/about', response: "Let me tell you about who we are." }
       };
       
-      // Check for exact matches first
-      for (const [phrase, path] of Object.entries(navigationCommands)) {
-        if (command.includes(phrase)) {
-          navigationPath = path;
-          responseText = `Taking you to the ${phrase} page.`;
-          break;
+      // Contextual intent detection
+      const findIntent = () => {
+        // Check for exact navigational matches first
+        for (const [phrase, data] of Object.entries(navigationCommands)) {
+          if (command.includes(phrase)) {
+            return { path: data.path, response: data.response };
+          }
         }
-      }
+        
+        // Check for service category matches
+        for (const [category, data] of Object.entries(serviceCategories)) {
+          if (command.includes(category)) {
+            return { path: data.path, response: data.response };
+          }
+        }
+        
+        // Advanced intent detection for complex queries
+        if (command.includes('help') || command.includes('need assistance')) {
+          return { path: '/services', response: "I can help you find the right service. Taking you to our services page." };
+        }
+        
+        if (command.includes('find') || command.includes('search') || command.includes('looking for')) {
+          if (command.includes('care') || command.includes('help')) {
+            return { path: '/services', response: "Let me help you find the care services you need." };
+          }
+          return { path: '/caregivers', response: "Let me help you find the right caregiver for your needs." };
+        }
+        
+        if (command.includes('emergency') || command.includes('urgent')) {
+          return { 
+            path: null, 
+            response: "I understand this is urgent. I'm alerting our emergency team right away. Help is on the way." 
+          };
+        }
+        
+        // Payment related queries
+        if (command.includes('payment') || command.includes('pay') || command.includes('cost') || command.includes('price')) {
+          return { 
+            path: '/book-service', 
+            response: "We accept cash on delivery as our payment method. Let me take you to our booking page for more details." 
+          };
+        }
+        
+        return null;
+      };
       
-      // If no direct match, try to understand intent
-      if (!navigationPath) {
-        if (command.includes('emergency') || command.includes('urgent help')) {
-          responseText = "I'm alerting our emergency team right away. Help is on the way.";
+      // Process the intent
+      const intent = findIntent();
+      
+      if (intent) {
+        navigationPath = intent.path;
+        responseText = intent.response;
+        
+        // Handle special cases like emergency
+        if (intent.path === null && intent.response.includes('emergency')) {
           toast({
             title: "Emergency Alert",
             description: "Our care team has been notified and will contact you immediately.",
             variant: "destructive",
           });
-        } 
-        else if (command.includes('log out') || command.includes('sign out')) {
-          responseText = "Logging you out of your account.";
-          // This would require additional implementation for logout functionality
         }
-        else if (command.includes('track') || command.includes('where is')) {
-          responseText = "I'll check the status of your current service for you.";
-          navigationPath = '/profile';
+      } else {
+        // Conversational fallback
+        if (command.includes('hello') || command.includes('hi') || command.includes('hey')) {
+          responseText = "Hello! I'm your Guardian Go assistant. How can I help you today?";
+        } 
+        else if (command.includes('thank')) {
+          responseText = "You're welcome! Is there anything else I can help you with?";
+        }
+        else if (command.includes('bye') || command.includes('goodbye')) {
+          responseText = "Goodbye! Feel free to ask for help anytime.";
         }
         else {
-          responseText = "I'm sorry, I didn't understand that request. You can ask me to navigate to different pages like 'go to home', 'show caregivers', or 'book a service'.";
+          responseText = "I'm not sure I understood that. You can ask me to navigate to different pages like 'go to home', 'show caregivers', or ask about specific services like 'cooking help' or 'medication assistance'.";
         }
       }
+      
+      // Add assistant response to conversation history
+      setConversationHistory([
+        ...updatedHistory,
+        { role: 'assistant', content: responseText }
+      ]);
       
       setResponse(responseText);
       speakResponse(responseText);
@@ -259,21 +343,28 @@ const VoiceAssistant = () => {
               </Button>
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Say "Go to how it works" or "Show caregivers" to navigate, or ask for help with your account.
+              Try saying "Find cooking help" or "I need medical assistance" to find relevant services, or navigate directly with "Go to how it works".
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          <div className="py-4">
-            {transcript && (
-              <Card className="p-3 mb-4 bg-muted">
-                <p className="text-sm">{transcript}</p>
-              </Card>
-            )}
-            
-            {response && (
-              <Card className="p-3 bg-primary/10 border-primary/20">
-                <p className="text-sm">{response}</p>
-              </Card>
+          <div className="py-4 max-h-[60vh] overflow-y-auto">
+            {conversationHistory.length > 0 ? (
+              <div className="space-y-3">
+                {conversationHistory.map((msg, index) => (
+                  <Card 
+                    key={index} 
+                    className={`p-3 ${msg.role === 'user' ? 'bg-muted' : 'bg-primary/10 border-primary/20'}`}
+                  >
+                    <p className="text-sm">{msg.content}</p>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              transcript && (
+                <Card className="p-3 mb-4 bg-muted">
+                  <p className="text-sm">{transcript}</p>
+                </Card>
+              )
             )}
             
             {isLoading && (
