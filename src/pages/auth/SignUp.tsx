@@ -34,15 +34,11 @@ const SignUp = () => {
     
     try {
       await signup(email, password, fullName);
-      toast({
-        title: "Account created",
-        description: "Your account has been created successfully. Welcome to Guardian Go!",
-      });
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Sign up failed",
-        description: "There was an error creating your account. Please try again.",
+        description: error.message || "There was an error creating your account. Please try again.",
         variant: "destructive",
       });
       console.error("Signup error:", error);
@@ -55,13 +51,11 @@ const SignUp = () => {
     <div className="min-h-screen flex items-center justify-center bg-guardian-50 p-4">
       <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block">
-            <h1 className="text-3xl font-bold">
-              <span className="bg-gradient-to-r from-guardian-600 to-guardian-400 bg-clip-text text-transparent">
-                Guardian<span className="text-warm-500">Go</span>
-              </span>
-            </h1>
-          </Link>
+          <h1 className="text-3xl font-bold">
+            <span className="bg-gradient-to-r from-guardian-600 to-guardian-400 bg-clip-text text-transparent">
+              Guardian<span className="text-warm-500">Go</span>
+            </span>
+          </h1>
           <p className="text-muted-foreground mt-2">Create your account</p>
         </div>
         

@@ -101,80 +101,84 @@ const VoiceAssistant = () => {
     stopListening();
     
     try {
-      // Improved command processing with better matching
+      // Enhanced command processing with better matching
       const command = transcript.toLowerCase();
       let responseText = '';
       let navigationPath = '';
       let navigationDelay = 1500;
       
-      // Helper function to check if command contains any of the keywords
-      const containsAny = (keywords: string[]) => {
-        return keywords.some(keyword => command.includes(keyword));
+      // Navigation commands mapping for direct matches
+      const navigationCommands = {
+        'home': '/',
+        'main page': '/',
+        'go home': '/',
+        'homepage': '/',
+        
+        'book': '/book-service',
+        'book service': '/book-service',
+        'book a service': '/book-service',
+        'appointment': '/book-service',
+        'schedule': '/book-service',
+        
+        'caregivers': '/caregivers',
+        'find caregiver': '/caregivers',
+        'find caregivers': '/caregivers',
+        'show caregiver': '/caregivers',
+        'show caregivers': '/caregivers',
+        'all caregivers': '/caregivers',
+        
+        'profile': '/profile',
+        'my profile': '/profile',
+        'account': '/profile',
+        'my account': '/profile',
+        'settings': '/profile',
+        
+        'services': '/services',
+        'our services': '/services',
+        'what services': '/services',
+        'offerings': '/services',
+        
+        'how it works': '/how-it-works',
+        'how does it work': '/how-it-works',
+        'process': '/how-it-works',
+        'how guardian go works': '/how-it-works',
+        
+        'about': '/about',
+        'about us': '/about',
+        'company': '/about',
+        'who are you': '/about'
       };
       
-      // Navigation commands
-      if (containsAny(['home', 'main page', 'go home'])) {
-        responseText = "Taking you to the home page.";
-        navigationPath = '/';
-      } 
-      else if (containsAny(['book', 'service', 'appointment']) && !command.includes('how')) {
-        responseText = "I can help you book a service. Taking you to the booking page now.";
-        navigationPath = '/book-service';
-      } 
-      else if (containsAny(['find caregiver', 'show caregiver', 'caregivers list', 'all caregivers'])) {
-        responseText = "Let me show you our available caregivers.";
-        navigationPath = '/caregivers';
+      // Check for exact matches first
+      for (const [phrase, path] of Object.entries(navigationCommands)) {
+        if (command.includes(phrase)) {
+          navigationPath = path;
+          responseText = `Taking you to the ${phrase} page.`;
+          break;
+        }
       }
-      else if (containsAny(['track', 'tracking', 'where is', 'location']) && containsAny(['caregiver', 'service'])) {
-        responseText = "I'll check the status of your current service for you.";
-        navigationPath = '/profile';
-      } 
-      else if (containsAny(['profile', 'account', 'my account', 'settings'])) {
-        responseText = "Opening your profile settings.";
-        navigationPath = '/profile';
-      }
-      else if (containsAny(['services', 'what services', 'offerings', 'what do you offer'])) {
-        responseText = "Here are the services we offer.";
-        navigationPath = '/services';
-      }
-      else if (containsAny(['how', 'works', 'process']) && !containsAny(['login', 'sign'])) {
-        responseText = "Let me show you how Guardian Go works.";
-        navigationPath = '/how-it-works';
-      }
-      else if (containsAny(['about', 'company', 'who are you'])) {
-        responseText = "Taking you to our About Us page.";
-        navigationPath = '/about';
-      }
-      else if (containsAny(['contact', 'help', 'support', 'assistance'])) {
-        responseText = "You can contact our support team through your profile page. Taking you there now.";
-        navigationPath = '/profile';
-      }
-      else if (containsAny(['emergency', 'help immediately', 'urgent', 'emergency help'])) {
-        responseText = "I'm alerting our emergency team right away. Help is on the way.";
-        toast({
-          title: "Emergency Alert",
-          description: "Our care team has been notified and will contact you immediately.",
-          variant: "destructive",
-        });
-      } 
-      else if (containsAny(['login', 'sign in', 'log in'])) {
-        responseText = "Taking you to the login page.";
-        navigationPath = '/login';
-      }
-      else if (containsAny(['sign up', 'register', 'create account', 'join'])) {
-        responseText = "Taking you to the sign up page.";
-        navigationPath = '/signup';
-      }
-      else if (containsAny(['log out', 'sign out', 'logout'])) {
-        responseText = "Do you want me to log you out?";
-        // This would require additional confirmation in a real app
-      }
-      else if (containsAny(['request match', 'custom match', 'special needs', 'specific caregiver'])) {
-        responseText = "I'll help you request a custom match for your specific needs.";
-        navigationPath = '/book-service';
-      }
-      else {
-        responseText = "I'm sorry, I didn't understand that request. You can ask me to book a service, find caregivers, track your service, view your profile, or get help.";
+      
+      // If no direct match, try to understand intent
+      if (!navigationPath) {
+        if (command.includes('emergency') || command.includes('urgent help')) {
+          responseText = "I'm alerting our emergency team right away. Help is on the way.";
+          toast({
+            title: "Emergency Alert",
+            description: "Our care team has been notified and will contact you immediately.",
+            variant: "destructive",
+          });
+        } 
+        else if (command.includes('log out') || command.includes('sign out')) {
+          responseText = "Logging you out of your account.";
+          // This would require additional implementation for logout functionality
+        }
+        else if (command.includes('track') || command.includes('where is')) {
+          responseText = "I'll check the status of your current service for you.";
+          navigationPath = '/profile';
+        }
+        else {
+          responseText = "I'm sorry, I didn't understand that request. You can ask me to navigate to different pages like 'go to home', 'show caregivers', or 'book a service'.";
+        }
       }
       
       setResponse(responseText);
@@ -219,6 +223,17 @@ const VoiceAssistant = () => {
     }
   };
   
+  // Automatically process voice commands after a short delay
+  useEffect(() => {
+    if (transcript && isListening) {
+      const timeoutId = setTimeout(() => {
+        processVoiceCommand();
+      }, 2000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [transcript]);
+  
   return (
     <>
       <Button 
@@ -244,7 +259,7 @@ const VoiceAssistant = () => {
               </Button>
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Ask me to book a service, find caregivers, track your caregiver, or get help with your account.
+              Say "Go to how it works" or "Show caregivers" to navigate, or ask for help with your account.
             </AlertDialogDescription>
           </AlertDialogHeader>
           

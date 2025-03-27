@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import Button from '@/components/ui/Button';
@@ -14,11 +14,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
   const { login } = useAuth();
-  
-  // Get the redirect path from location state or default to home
-  const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,15 +22,11 @@ const Login = () => {
     
     try {
       await login(email, password);
-      toast({
-        title: "Login successful",
-        description: "Welcome back to Guardian Go!",
-      });
-      navigate(from, { replace: true });
-    } catch (error) {
+      navigate('/');
+    } catch (error: any) {
       toast({
         title: "Login failed",
-        description: "Please check your email and password and try again.",
+        description: error.message || "Please check your email and password and try again.",
         variant: "destructive",
       });
       console.error("Login error:", error);
@@ -47,13 +39,11 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-guardian-50 p-4">
       <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block">
-            <h1 className="text-3xl font-bold">
-              <span className="bg-gradient-to-r from-guardian-600 to-guardian-400 bg-clip-text text-transparent">
-                Guardian<span className="text-warm-500">Go</span>
-              </span>
-            </h1>
-          </Link>
+          <h1 className="text-3xl font-bold">
+            <span className="bg-gradient-to-r from-guardian-600 to-guardian-400 bg-clip-text text-transparent">
+              Guardian<span className="text-warm-500">Go</span>
+            </span>
+          </h1>
           <p className="text-muted-foreground mt-2">Log in to your account</p>
         </div>
         

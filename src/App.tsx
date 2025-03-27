@@ -18,6 +18,7 @@ import SignUp from "./pages/auth/SignUp";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import AuthProvider from "./providers/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
+import VoiceAssistant from "./components/voice/VoiceAssistant";
 
 const queryClient = new QueryClient();
 
@@ -44,26 +45,34 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
+  const { isAuthenticated } = useAuth();
+  
+  // If not authenticated, only allow access to auth routes
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+  
+  // If authenticated, show all routes
   return (
     <Routes>
-      {/* Auth Routes - redirect to home if already logged in */}
-      <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
-      <Route path="/signup" element={<AuthRoute><SignUp /></AuthRoute>} />
-      <Route path="/forgot-password" element={<AuthRoute><ForgotPassword /></AuthRoute>} />
-      
-      {/* Public Routes */}
       <Route path="/" element={<Index />} />
       <Route path="/caregivers" element={<Caregivers />} />
       <Route path="/caregivers/:id" element={<CaregiverDetail />} />
       <Route path="/services" element={<Services />} />
       <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/about" element={<AboutUs />} />
-      
-      {/* Protected Routes - require authentication */}
-      <Route path="/book-service" element={<ProtectedRoute><BookService /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      
-      {/* Catch-all route */}
+      <Route path="/book-service" element={<BookService />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/login" element={<Navigate to="/" replace />} />
+      <Route path="/signup" element={<Navigate to="/" replace />} />
+      <Route path="/forgot-password" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -77,6 +86,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AppRoutes />
+          <VoiceAssistant />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
