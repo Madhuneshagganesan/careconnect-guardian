@@ -10,6 +10,7 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { Message } from '@/hooks/useConversationHistory';
+import VoiceCommandHelp from './VoiceCommandHelp';
 
 interface VoiceAssistantUIProps {
   isOpen: boolean;
@@ -79,7 +80,10 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
       
       <AlertDialogHeader>
         <AlertDialogTitle className="flex items-center justify-between">
-          <span>Voice Assistant</span>
+          <div className="flex items-center gap-2">
+            <span>Voice Assistant</span>
+            <VoiceCommandHelp />
+          </div>
           <Button 
             variant="ghost" 
             size="sm" 
