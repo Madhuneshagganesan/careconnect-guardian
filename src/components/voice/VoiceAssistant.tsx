@@ -56,7 +56,7 @@ const VoiceAssistant = () => {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [transcript, isListening]);
+  }, [transcript, isListening, processCommand]);
   
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>

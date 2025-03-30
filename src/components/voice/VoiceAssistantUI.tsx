@@ -43,12 +43,14 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
 }) => {
   return (
     <>
+      {/* Voice Assistant Button - Made visible on all screens */}
       <Button 
         onClick={() => setIsOpen(true)} 
-        className="fixed bottom-6 right-6 rounded-full shadow-lg w-14 h-14 z-50"
+        className="fixed bottom-6 right-6 rounded-full shadow-lg w-14 h-14 z-50 bg-guardian-500 hover:bg-guardian-600"
         size="icon"
+        variant="default"
       >
-        <Mic size={24} />
+        <Mic size={24} className="text-white" />
       </Button>
       
       <div className="py-4 max-h-[60vh] overflow-y-auto">
