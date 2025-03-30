@@ -9,7 +9,8 @@ export const useVoiceCommandProcessor = (
   setTranscript: (text: string) => void,
   stopListening: () => void,
   speakResponse: (text: string) => void,
-  addMessageToHistory: (role: string, content: string) => void
+  addMessageToHistory: (role: string, content: string) => void,
+  currentPage: string
 ) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -27,12 +28,13 @@ export const useVoiceCommandProcessor = (
       
       const command = transcript.toLowerCase().trim();
       
-      // Process the command
+      // Process the command with current page context
       const responseText = await processVoiceCommand(
         command,
         navigate,
         addMessageToHistory,
-        speakResponse
+        speakResponse,
+        currentPage
       );
       
       setResponse(responseText);

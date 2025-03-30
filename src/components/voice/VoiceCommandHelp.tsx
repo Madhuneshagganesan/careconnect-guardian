@@ -8,8 +8,18 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from '@/components/ui/shadcn-button';
 import { HelpCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { pageContextResponses } from '@/utils/voiceCommands';
 
 const VoiceCommandHelp = () => {
+  const location = useLocation();
+  const currentPage = location.pathname;
+  
+  // Get page-specific help text if available
+  const pageContext = pageContextResponses[currentPage] || {
+    helpText: "You can ask me to navigate to different pages or tell you about our services."
+  };
+
   // Organize commands by category for better readability
   const commandCategories = [
     {
@@ -30,6 +40,15 @@ const VoiceCommandHelp = () => {
         "Looking for cleaning services",
         "Need transportation assistance",
         "Need medication help"
+      ]
+    },
+    {
+      category: "Current Page",
+      examples: [
+        "Where am I?",
+        "What can I do on this page?",
+        "Help me with this page",
+        "What is this page about?"
       ]
     },
     {
@@ -59,7 +78,7 @@ const VoiceCommandHelp = () => {
         <div className="space-y-2">
           <h3 className="font-medium text-sm">Voice Command Help</h3>
           <p className="text-xs text-muted-foreground">
-            Use these example commands with the voice assistant
+            {pageContext.helpText}
           </p>
           
           <ScrollArea className="h-72 rounded-md">

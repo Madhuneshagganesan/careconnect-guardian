@@ -6,9 +6,12 @@ import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useConversationHistory } from '@/hooks/useConversationHistory';
 import { useVoiceCommandProcessor } from '@/hooks/useVoiceCommandProcessor';
 import { VoiceAssistantUI } from './VoiceAssistantUI';
+import { useLocation } from 'react-router-dom';
 
 const VoiceAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  const currentPage = location.pathname;
   
   // Initialize hooks
   const { 
@@ -40,7 +43,8 @@ const VoiceAssistant = () => {
     setTranscript, 
     stopListening, 
     speakResponse, 
-    addMessageToHistory
+    addMessageToHistory,
+    currentPage
   );
   
   // Automatically process voice commands after a short delay

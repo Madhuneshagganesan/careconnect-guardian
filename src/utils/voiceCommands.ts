@@ -1,4 +1,3 @@
-
 import { NavigateFunction } from 'react-router-dom';
 
 // Define the command types
@@ -14,6 +13,14 @@ export interface NavigationCommands {
 
 export interface ServiceCategories {
   [key: string]: CommandData;
+}
+
+// Context-specific responses for different pages
+export interface PageContextResponses {
+  [key: string]: {
+    general: string[];
+    helpText: string;
+  };
 }
 
 // Navigation commands collection
@@ -159,6 +166,76 @@ export const serviceCategories: ServiceCategories = {
   'exercise help': { path: '/services', response: "We provide exercise assistance. Let me show you our services." }
 };
 
+// Page-specific context responses
+export const pageContextResponses: PageContextResponses = {
+  "/": {
+    general: [
+      "I see you're on the home page. You can ask me to navigate to different sections or tell you more about our services.",
+      "Welcome to Guardian Go. From here, you can explore our caregivers, learn about our services, or navigate to other pages.",
+      "You're currently on the home page. What would you like to know about our services?"
+    ],
+    helpText: "Since you're on the home page, you can ask me to show you our caregivers, navigate to services, or help you book a service."
+  },
+  "/caregivers": {
+    general: [
+      "I see you're browsing our caregivers. You can ask me for help filtering or selecting a caregiver.",
+      "On this page, you can explore our available caregivers. Need help finding someone with specific skills?",
+      "You're viewing our caregivers. Let me know if you'd like to filter by specific services or expertise."
+    ],
+    helpText: "While browsing caregivers, you can ask me to help you find caregivers with specific skills or availability."
+  },
+  "/services": {
+    general: [
+      "You're on our services page. I can help explain any of our services in more detail.",
+      "This page shows all the services we offer. Need more information about a specific service?",
+      "You're viewing our service options. Would you like me to explain any particular service in more detail?"
+    ],
+    helpText: "On the services page, you can ask about specific services like meal preparation, medication management, or transportation."
+  },
+  "/how-it-works": {
+    general: [
+      "You're on our 'How It Works' page. I can help explain our process or answer specific questions.",
+      "This page explains how our service works. Do you have any questions about our process?",
+      "You're learning about how our service works. Let me know if you need clarification on any step."
+    ],
+    helpText: "While on this page, you can ask about specific steps in our process or how to get started with our service."
+  },
+  "/about": {
+    general: [
+      "You're on our About page. I can tell you more about our company history or values.",
+      "This page provides information about our company. Anything specific you'd like to know?",
+      "You're learning about our company. Feel free to ask questions about our team or mission."
+    ],
+    helpText: "On this page, you can ask about our company history, mission, values, or team."
+  },
+  "/book-service": {
+    general: [
+      "I see you're booking a service. I can help you complete this process if you have questions.",
+      "You're on the booking page. Need help selecting a service or caregiver?",
+      "You're setting up a service booking. Let me know if you need assistance with any part of the form."
+    ],
+    helpText: "While booking a service, you can ask for help with filling out the form, selecting dates, or choosing caregivers."
+  },
+  "/profile": {
+    general: [
+      "You're viewing your profile. I can help you update information or manage your preferences.",
+      "This is your profile page. Need help updating your details or preferences?",
+      "You're on the profile page. I can assist with updating information or managing account settings."
+    ],
+    helpText: "On your profile page, you can ask for help updating your information, managing preferences, or viewing your service history."
+  }
+};
+
+// Default context for unknown pages
+const defaultPageContext = {
+  general: [
+    "How can I assist you with navigating the site?",
+    "What would you like to know about our services?",
+    "I can help you find information or navigate to different sections."
+  ],
+  helpText: "You can ask me to navigate to different pages or tell you about our services."
+};
+
 // Find best match for a command
 export const findBestCommandMatch = (userCommand: string) => {
   // First check for exact matches in navigation commands
@@ -218,54 +295,90 @@ export const findBestCommandMatch = (userCommand: string) => {
   return null;
 };
 
+// Get context-aware response based on current page
+const getPageContextResponse = (currentPage: string) => {
+  const normalizedPage = currentPage.endsWith('/') 
+    ? currentPage.slice(0, -1) 
+    : currentPage;
+  
+  const pageContext = pageContextResponses[normalizedPage] || defaultPageContext;
+  return pageContext.general[Math.floor(Math.random() * pageContext.general.length)];
+};
+
 // Process voice commands
 export const processVoiceCommand = async (
   command: string,
   navigate: NavigateFunction,
   addMessageToHistory: (role: string, content: string) => void,
-  speakResponseFn: (text: string) => void
+  speakResponseFn: (text: string) => void,
+  currentPage: string = '/'
 ) => {
   let responseText = '';
   let navigationPath = '';
   let navigationDelay = 1000;
+  const isCurrentPageQuery = /where am i|what page|current page|this page/i.test(command);
 
-  // Find the best match for the command
-  const match = findBestCommandMatch(command);
-  
-  if (match) {
-    navigationPath = match.data.path;
-    responseText = match.data.response;
+  // Handle page-specific queries
+  if (isCurrentPageQuery) {
+    const pageContext = pageContextResponses[currentPage] || defaultPageContext;
+    responseText = pageContext.helpText;
+    
+    // For specific responses about the current page
+    if (currentPage === '/how-it-works') {
+      responseText += " Our process is designed to make finding care simple and reliable.";
+    } else if (currentPage === '/caregivers') {
+      responseText += " All our caregivers are thoroughly vetted and trained.";
+    } else if (currentPage === '/services') {
+      responseText += " We offer a wide range of services to meet your specific needs.";
+    }
   } else {
-    // Handle search-like queries
-    if (command.includes('search') || command.includes('find') || command.includes('looking for')) {
-      // Extract what they're searching for
-      let searchTerm = command.replace(/search for|search|find|looking for|i need|i want/gi, '').trim();
+    // Find the best match for the command using existing logic
+    const match = findBestCommandMatch(command);
+    
+    if (match) {
+      navigationPath = match.data.path;
       
-      if (searchTerm) {
-        responseText = `I'll help you find information about "${searchTerm}". Let me take you to our services page where you can explore options.`;
-        navigationPath = '/services';
+      // Only add context if not navigating to the current page
+      if (navigationPath !== currentPage) {
+        responseText = match.data.response;
       } else {
-        responseText = "What would you like me to search for? You can say things like 'find cooking help' or 'search for medication assistance'.";
+        responseText = `You're already on ${match.data.path === '/' ? 'the home page' : 'this page'}. ${getPageContextResponse(currentPage)}`;
+        navigationPath = ''; // Don't navigate if already on the page
       }
     } else {
-      // Conversational fallback responses
-      if (command.includes('hello') || command.includes('hi') || command.includes('hey')) {
-        responseText = "Hello! I'm your Guardian Go assistant. How can I help you today? You can ask me to navigate to different pages like 'go to home page' or 'show caregivers'.";
-      } 
-      else if (command.includes('thank')) {
-        responseText = "You're welcome! Is there anything else I can help you with?";
-      }
-      else if (command.includes('bye') || command.includes('goodbye')) {
-        responseText = "Goodbye! Feel free to ask for help anytime.";
-      }
-      else if (command.includes('help') || command.includes('assist')) {
-        responseText = "I can help you navigate the app. Try saying 'go to home page', 'show caregivers', or ask about specific services like 'tell me about meal preparation'.";
-      }
-      else if (command.includes('what can you do') || command.includes('your capabilities')) {
-        responseText = "I can help you navigate the app, find information about our services, assist with booking a caregiver, and answer questions about how our service works.";
-      }
-      else {
-        responseText = "I'm not sure I understood that. You can try saying 'go to home page', 'go to caregivers page', 'go to how it works page', 'go to about us page', or 'go to book a caregiver page'.";
+      // Handle search-like queries with context awareness
+      if (command.includes('search') || command.includes('find') || command.includes('looking for')) {
+        // Extract what they're searching for
+        let searchTerm = command.replace(/search for|search|find|looking for|i need|i want/gi, '').trim();
+        
+        if (searchTerm) {
+          responseText = `I'll help you find information about "${searchTerm}". Let me take you to our services page where you can explore options.`;
+          navigationPath = '/services';
+        } else {
+          responseText = "What would you like me to search for? You can say things like 'find cooking help' or 'search for medication assistance'.";
+        }
+      } else {
+        // Conversational fallback responses with context awareness
+        if (command.includes('hello') || command.includes('hi') || command.includes('hey')) {
+          responseText = "Hello! " + getPageContextResponse(currentPage);
+        } 
+        else if (command.includes('thank')) {
+          responseText = "You're welcome! Is there anything else I can help you with?";
+        }
+        else if (command.includes('bye') || command.includes('goodbye')) {
+          responseText = "Goodbye! Feel free to ask for help anytime.";
+        }
+        else if (command.includes('help') || command.includes('assist')) {
+          const pageContext = pageContextResponses[currentPage] || defaultPageContext;
+          responseText = pageContext.helpText;
+        }
+        else if (command.includes('what can you do') || command.includes('your capabilities')) {
+          responseText = "I can help you navigate the app, find information about our services, assist with booking a caregiver, and answer questions. " + getPageContextResponse(currentPage);
+        }
+        else {
+          // Add context to the default fallback response
+          responseText = "I'm not sure I understood that. " + getPageContextResponse(currentPage);
+        }
       }
     }
   }
