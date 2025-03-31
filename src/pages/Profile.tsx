@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
@@ -7,11 +6,37 @@ import AnimatedCard from '@/components/ui/AnimatedCard';
 import Button from '@/components/ui/Button';
 import { 
   User, Edit, Bell, CreditCard, MapPin, Clock, 
-  LogOut, Settings, Calendar as CalendarIcon, Phone, Mail
+  LogOut, Settings, Calendar as CalendarIcon, Phone, Mail,
+  Heart, ChevronRight, ArrowRight, Star
 } from 'lucide-react';
 import LiveTracking from '@/components/tracking/LiveTracking';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+
+// Sample data for favorite caregivers
+const favoritesCaregivers = [
+  {
+    id: 1,
+    name: "Dr. Sarah Johnson",
+    specialty: "Elder Care Specialist",
+    rating: 4.9,
+    reviews: 124
+  },
+  {
+    id: 2,
+    name: "Michael Thompson",
+    specialty: "Physical Therapist",
+    rating: 4.8,
+    reviews: 97
+  },
+  {
+    id: 3,
+    name: "Emily Davies",
+    specialty: "Home Care Nurse",
+    rating: 4.7,
+    reviews: 83
+  }
+];
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -144,6 +169,19 @@ const Profile = () => {
             Yes, Cancel
           </Button>
         </div>
+      ),
+    });
+  };
+
+  // Add handleAddReview function
+  const handleAddReview = (id: number) => {
+    toast({
+      title: "Add Review",
+      description: `You can add a review for appointment #${id}.`,
+      action: (
+        <Button variant="primary" size="sm">
+          Review Now
+        </Button>
       ),
     });
   };
@@ -838,252 +876,4 @@ const Profile = () => {
                           <Clock size={16} />
                           <span>2 hours</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <User size={16} />
-                          <span>Michael Brown</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2 mt-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleReschedule(2)}
-                        >
-                          Reschedule
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleCancel(2)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-muted/30">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-medium">Home Care Service</h3>
-                          <p className="text-sm text-muted-foreground">June 15, 2023, 2:00 PM - 4:00 PM</p>
-                        </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Completed</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-                        <div className="flex items-center gap-1">
-                          <Clock size={16} />
-                          <span>2 hours</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <User size={16} />
-                          <span>Sarah Johnson</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center mt-3">
-                        <div className="flex items-center gap-1">
-                          <Star className="text-amber-400" size={16} />
-                          <Star className="text-amber-400" size={16} />
-                          <Star className="text-amber-400" size={16} />
-                          <Star className="text-amber-400" size={16} />
-                          <Star className="text-amber-400" size={16} />
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleAddReview(3)}
-                        >
-                          Review
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-muted/30">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-medium">Elder Care Service</h3>
-                          <p className="text-sm text-muted-foreground">June 10, 2023, 10:00 AM - 12:00 PM</p>
-                        </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Completed</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-                        <div className="flex items-center gap-1">
-                          <Clock size={16} />
-                          <span>2 hours</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <User size={16} />
-                          <span>Michael Brown</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center mt-3">
-                        <div className="flex items-center gap-1">
-                          <Star className="text-amber-400" size={16} />
-                          <Star className="text-amber-400" size={16} />
-                          <Star className="text-amber-400" size={16} />
-                          <Star className="text-amber-400" size={16} />
-                          <Star className="text-gray-300" size={16} />
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleAddReview(4)}
-                        >
-                          Review
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="mt-6 text-center">
-                  <Button 
-                    variant="primary" 
-                    className="gap-2"
-                    onClick={() => navigate('/book-service')}
-                  >
-                    Book New Service
-                    <ArrowRight size={16} />
-                  </Button>
-                </div>
-              </div>
-            </AnimatedCard>
-          </>
-        );
-    }
-  };
-
-  return (
-    <>
-      <Navbar />
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex flex-col md:flex-row gap-6 mb-8">
-          <div className="flex-shrink-0">
-            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-              <User size={40} />
-            </div>
-          </div>
-          
-          <div className="flex-grow">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold">{user?.firstName} {user?.lastName}</h1>
-                <p className="text-muted-foreground">Member since January 2023</p>
-              </div>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-2 self-start"
-                onClick={() => setIsEditingProfile(true)}
-              >
-                <Edit size={16} />
-                Edit Profile
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin size={18} />
-                <span>{user?.address || 'Address not provided'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Bell size={18} />
-                <span>Notifications On</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <CreditCard size={18} />
-                <span>Payment: Cash on delivery</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
-            <AnimatedCard className="p-4 sticky top-24">
-              <nav className="space-y-1">
-                <button 
-                  className={`flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg font-medium transition-colors ${
-                    activeSidebarItem === 'appointments' 
-                      ? 'text-primary bg-primary/10' 
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                  onClick={() => setActiveSidebarItem('appointments')}
-                >
-                  <CalendarIcon size={20} />
-                  <span>Appointments</span>
-                </button>
-                
-                <button 
-                  className={`flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg font-medium transition-colors ${
-                    activeSidebarItem === 'personal-info' 
-                      ? 'text-primary bg-primary/10' 
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                  onClick={() => setActiveSidebarItem('personal-info')}
-                >
-                  <User size={20} />
-                  <span>Personal Info</span>
-                </button>
-                
-                <button 
-                  className={`flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg font-medium transition-colors ${
-                    activeSidebarItem === 'favorite-caregivers' 
-                      ? 'text-primary bg-primary/10' 
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                  onClick={() => setActiveSidebarItem('favorite-caregivers')}
-                >
-                  <Heart size={20} />
-                  <span>Favorite Caregivers</span>
-                </button>
-                
-                <button 
-                  className={`flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg font-medium transition-colors ${
-                    activeSidebarItem === 'payment-methods' 
-                      ? 'text-primary bg-primary/10' 
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                  onClick={() => setActiveSidebarItem('payment-methods')}
-                >
-                  <CreditCard size={20} />
-                  <span>Payment Methods</span>
-                </button>
-                
-                <button 
-                  className={`flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg font-medium transition-colors ${
-                    activeSidebarItem === 'settings' 
-                      ? 'text-primary bg-primary/10' 
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                  onClick={() => setActiveSidebarItem('settings')}
-                >
-                  <Settings size={20} />
-                  <span>Settings</span>
-                </button>
-                
-                <button 
-                  className="flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg font-medium transition-colors text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  onClick={handleLogout}
-                >
-                  <LogOut size={20} />
-                  <span>Logout</span>
-                </button>
-              </nav>
-            </AnimatedCard>
-          </div>
-          
-          <div className="lg:col-span-2 space-y-8">
-            {renderSidebarContent()}
-          </div>
-        </div>
-      </main>
-      
-      <Footer />
-    </>
-  );
-};
-
-export default Profile;
+                        <div className="flex items-center gap-
