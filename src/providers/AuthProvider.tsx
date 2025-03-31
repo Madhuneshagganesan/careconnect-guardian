@@ -92,7 +92,6 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
       const newUser = {
         id: `user_${Date.now()}`,
         ...userData,
-        name: `${userData.firstName} ${userData.lastName}`
       };
       
       // Store user in users array
@@ -132,6 +131,43 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const updateProfile = async (updatedUserData: Partial<User>) => {
+    if (!user) return Promise.reject(new Error("No user is currently logged in"));
+    
+    try {
+      // Update user in localStorage
+      const updatedUser = {...user, ...updatedUserData};
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Also update in the users array
+      const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      const updatedUsers = storedUsers.map((u: any) => {
+        if (u.id === user.id) {
+          const { password } = u; // Keep the password from the original user object
+          return { ...updatedUser, password };
+        }
+        return u;
+      });
+      
+      localStorage.setItem('users', JSON.stringify(updatedUsers));
+      setUser(updatedUser);
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been successfully updated.",
+      });
+      
+      return Promise.resolve();
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+      return Promise.reject(error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -140,7 +176,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         isLoading,
         login,
         signup,
-        logout
+        logout,
+        updateProfile
       }}
     >
       {children}

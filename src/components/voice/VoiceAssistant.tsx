@@ -7,6 +7,7 @@ import { useConversationHistory } from '@/hooks/useConversationHistory';
 import { useVoiceCommandProcessor } from '@/hooks/useVoiceCommandProcessor';
 import { VoiceAssistantUI } from './VoiceAssistantUI';
 import { useLocation } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 
 const VoiceAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,16 +48,41 @@ const VoiceAssistant = () => {
     currentPage
   );
   
+  // Check if browser supports speech recognition
+  useEffect(() => {
+    if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+      toast({
+        title: "Speech Recognition Not Supported",
+        description: "Your browser doesn't support speech recognition. Try using Chrome or Edge.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+  
   // Automatically process voice commands after a short delay
   useEffect(() => {
     if (transcript && isListening) {
       const timeoutId = setTimeout(() => {
         processCommand();
-      }, 1500); // Reduced slightly to be more responsive
+      }, 1500); // Short delay to be more responsive
       
       return () => clearTimeout(timeoutId);
     }
   }, [transcript, isListening, processCommand]);
+  
+  // Let the user know the feature is ready
+  useEffect(() => {
+    const hasShownWelcome = sessionStorage.getItem('voiceAssistantWelcomeShown');
+    if (!hasShownWelcome) {
+      setTimeout(() => {
+        toast({
+          title: "Voice Assistant Ready",
+          description: "Click the mic icon in the bottom right corner to use voice commands",
+        });
+        sessionStorage.setItem('voiceAssistantWelcomeShown', 'true');
+      }, 3000);
+    }
+  }, []);
   
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>

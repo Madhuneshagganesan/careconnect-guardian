@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Clock, Navigation, ChevronDown, ChevronUp, Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
@@ -52,7 +53,7 @@ const mockCaregivers = [
 
 const LiveTracking = () => {
   // Get caregiver ID from session or URL parameter in a real app
-  const caregiverIdRef = useRef<string>(localStorage.getItem('selectedCaregiverId') || 'cg-123');
+  const caregiverIdRef = useRef<string>(localStorage.getItem('selectedCaregiverId') || 'cg-124');
   
   const [caregiver, setCaregiver] = useState<Caregiver | null>(null);
   const [progress, setProgress] = useState(0);
@@ -65,7 +66,7 @@ const LiveTracking = () => {
     // In a real app, this would use a WebSocket or polling to get real-time updates
     const selectedCaregiver = mockCaregivers.find(cg => cg.id === caregiverIdRef.current) || mockCaregivers[0];
     
-    setCaregiver(selectedCaregiver);
+    setCaregiver(selectedCaregiver as Caregiver);
     
     // Simulate progress updates
     const interval = setInterval(() => {

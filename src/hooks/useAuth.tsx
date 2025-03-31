@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
 
 interface UserHealth {
   condition?: string;
@@ -29,18 +29,19 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (userData: Omit<User, 'id'> & { password: string }) => Promise<void>;
+  signup: (user: Omit<User, 'id'> & { password: string }) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (userData: Partial<User>) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  login: () => Promise.resolve(),
+  signup: () => Promise.resolve(),
+  logout: () => Promise.resolve(),
+  updateProfile: () => Promise.resolve(),
+});
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export { AuthContext };
+export const useAuth = () => useContext(AuthContext);

@@ -1,112 +1,71 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import AnimatedCard from '@/components/ui/AnimatedCard';
 import Button from '@/components/ui/Button';
 import { 
   User, Edit, Bell, CreditCard, MapPin, Clock, 
-  CheckCircle, ArrowRight, Heart, LogOut, Settings, 
-  Calendar as CalendarIcon, Star, Phone, Mail, ChevronRight
+  LogOut, Settings, Calendar as CalendarIcon, Phone, Mail
 } from 'lucide-react';
 import LiveTracking from '@/components/tracking/LiveTracking';
-import VoiceAssistant from '@/components/voice/VoiceAssistant';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { user, logout, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [activeSidebarItem, setActiveSidebarItem] = useState('appointments');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: 'John Smith',
-    email: 'john.smith@example.com',
-    phone: '+91 9876543210',
-    address: 'San Francisco, CA'
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: user?.address || '',
+    dob: user?.dob || '',
+    age: user?.age || '',
+    gender: user?.gender || '',
+    emergencyContact: user?.emergencyContact || '',
+    health: {
+      condition: user?.health?.condition || '',
+      treatment: user?.health?.treatment || '',
+      height: user?.health?.height || '',
+      weight: user?.health?.weight || '',
+      bloodGroup: user?.health?.bloodGroup || ''
+    }
   });
+  
+  // Update profileData when user data changes
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        dob: user.dob || '',
+        age: user.age || 0,
+        gender: user.gender || '',
+        emergencyContact: user.emergencyContact || '',
+        health: {
+          condition: user.health?.condition || '',
+          treatment: user.health?.treatment || '',
+          height: user.health?.height || '',
+          weight: user.health?.weight || '',
+          bloodGroup: user.health?.bloodGroup || ''
+        }
+      });
+    }
+  }, [user]);
   
   const tabs = [
     { id: 'upcoming', label: 'Upcoming', count: 2 },
     { id: 'past', label: 'Past', count: 5 },
     { id: 'favorites', label: 'Favorites', count: 3 }
-  ];
-  
-  const upcomingBookings = [
-    {
-      id: 1,
-      service: 'Meal Preparation',
-      caregiver: 'Priya Sharma',
-      date: 'Today',
-      time: '3:00 PM - 5:00 PM',
-      status: 'Confirmed',
-      imageUrl: ''
-    },
-    {
-      id: 2,
-      service: 'Medical Assistance',
-      caregiver: 'Rajesh Kumar',
-      date: 'Tomorrow',
-      time: '10:00 AM - 12:00 PM',
-      status: 'Pending',
-      imageUrl: ''
-    }
-  ];
-  
-  const pastBookings = [
-    {
-      id: 3,
-      service: 'Personal Care',
-      caregiver: 'Ananya Patel',
-      date: 'Nov 10, 2023',
-      time: '9:00 AM - 11:00 AM',
-      status: 'Completed',
-      imageUrl: ''
-    },
-    {
-      id: 4,
-      service: 'Errands & Shopping',
-      caregiver: 'Vikram Singh',
-      date: 'Nov 5, 2023',
-      time: '2:00 PM - 4:00 PM',
-      status: 'Completed',
-      imageUrl: ''
-    },
-    {
-      id: 5,
-      service: 'Household Help',
-      caregiver: 'Deepa Nair',
-      date: 'Oct 28, 2023',
-      time: '11:00 AM - 3:00 PM',
-      status: 'Completed',
-      imageUrl: ''
-    }
-  ];
-  
-  const favoritesCaregivers = [
-    {
-      id: 1,
-      name: 'Priya Sharma',
-      specialty: 'Elder Care Specialist',
-      rating: 4.9,
-      reviews: 156,
-      imageUrl: ''
-    },
-    {
-      id: 2,
-      name: 'Rajesh Kumar',
-      specialty: 'Physiotherapy Assistant',
-      rating: 4.8,
-      reviews: 124,
-      imageUrl: ''
-    },
-    {
-      id: 3,
-      name: 'Ananya Patel',
-      specialty: 'Personal Care Aide',
-      rating: 4.9,
-      reviews: 212,
-      imageUrl: ''
-    }
   ];
   
   const getStatusColor = (status: string) => {
@@ -124,19 +83,40 @@ const Profile = () => {
 
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsEditingProfile(false);
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been updated successfully.",
-    });
+    
+    const updatedData = {
+      firstName: profileData.firstName,
+      lastName: profileData.lastName,
+      name: `${profileData.firstName} ${profileData.lastName}`,
+      email: profileData.email,
+      phone: profileData.phone,
+      address: profileData.address,
+      dob: profileData.dob,
+      age: Number(profileData.age),
+      gender: profileData.gender,
+      emergencyContact: profileData.emergencyContact,
+      health: {
+        condition: profileData.health.condition,
+        treatment: profileData.health.treatment,
+        height: profileData.health.height,
+        weight: profileData.health.weight,
+        bloodGroup: profileData.health.bloodGroup
+      }
+    };
+    
+    updateProfile(updatedData)
+      .then(() => {
+        setIsEditingProfile(false);
+      })
+      .catch(error => {
+        console.error('Failed to update profile:', error);
+      });
   };
 
   const handleLogout = () => {
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
+    logout().then(() => {
+      navigate('/login');
     });
-    navigate('/');
   };
 
   const handleReschedule = (id: number) => {
@@ -168,13 +148,6 @@ const Profile = () => {
     });
   };
 
-  const handleAddReview = (id: number) => {
-    toast({
-      title: "Review Submitted",
-      description: `Thank you for reviewing your care experience #${id}.`,
-    });
-  };
-
   const renderSidebarContent = () => {
     switch (activeSidebarItem) {
       case 'personal-info':
@@ -185,14 +158,26 @@ const Profile = () => {
               
               {isEditingProfile ? (
                 <form onSubmit={handleProfileUpdate} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input 
-                      type="text" 
-                      value={profileData.name}
-                      onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                      className="w-full border border-input rounded-md px-4 py-2"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                      <input 
+                        type="text" 
+                        value={profileData.firstName}
+                        onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
+                        className="w-full border border-input rounded-md px-4 py-2"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                      <input 
+                        type="text" 
+                        value={profileData.lastName}
+                        onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
+                        className="w-full border border-input rounded-md px-4 py-2"
+                      />
+                    </div>
                   </div>
                   
                   <div>
@@ -223,6 +208,127 @@ const Profile = () => {
                       onChange={(e) => setProfileData({...profileData, address: e.target.value})}
                       className="w-full border border-input rounded-md px-4 py-2"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                      <input 
+                        type="date" 
+                        value={profileData.dob}
+                        onChange={(e) => setProfileData({...profileData, dob: e.target.value})}
+                        className="w-full border border-input rounded-md px-4 py-2"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                      <input 
+                        type="number" 
+                        value={profileData.age}
+                        onChange={(e) => setProfileData({...profileData, age: e.target.value})}
+                        className="w-full border border-input rounded-md px-4 py-2"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                    <select 
+                      value={profileData.gender}
+                      onChange={(e) => setProfileData({...profileData, gender: e.target.value})}
+                      className="w-full border border-input rounded-md px-4 py-2"
+                    >
+                      <option value="">Select gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                      <option value="prefer-not-to-say">Prefer not to say</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Emergency Contact</label>
+                    <input 
+                      type="tel" 
+                      value={profileData.emergencyContact}
+                      onChange={(e) => setProfileData({...profileData, emergencyContact: e.target.value})}
+                      className="w-full border border-input rounded-md px-4 py-2"
+                    />
+                  </div>
+
+                  <h3 className="font-medium mt-4">Health Information</h3>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Health Condition</label>
+                    <input 
+                      type="text" 
+                      value={profileData.health.condition}
+                      onChange={(e) => setProfileData({
+                        ...profileData, 
+                        health: {...profileData.health, condition: e.target.value}
+                      })}
+                      placeholder="Any health conditions we should be aware of"
+                      className="w-full border border-input rounded-md px-4 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Current Treatment</label>
+                    <input 
+                      type="text" 
+                      value={profileData.health.treatment}
+                      onChange={(e) => setProfileData({
+                        ...profileData, 
+                        health: {...profileData.health, treatment: e.target.value}
+                      })}
+                      placeholder="Any ongoing treatments"
+                      className="w-full border border-input rounded-md px-4 py-2"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Height</label>
+                      <input 
+                        type="text" 
+                        value={profileData.health.height}
+                        onChange={(e) => setProfileData({
+                          ...profileData, 
+                          health: {...profileData.health, height: e.target.value}
+                        })}
+                        placeholder="cm"
+                        className="w-full border border-input rounded-md px-4 py-2"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+                      <input 
+                        type="text" 
+                        value={profileData.health.weight}
+                        onChange={(e) => setProfileData({
+                          ...profileData, 
+                          health: {...profileData.health, weight: e.target.value}
+                        })}
+                        placeholder="kg"
+                        className="w-full border border-input rounded-md px-4 py-2"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Blood Group</label>
+                      <input 
+                        type="text" 
+                        value={profileData.health.bloodGroup}
+                        onChange={(e) => setProfileData({
+                          ...profileData, 
+                          health: {...profileData.health, bloodGroup: e.target.value}
+                        })}
+                        placeholder="e.g. O+"
+                        className="w-full border border-input rounded-md px-4 py-2"
+                      />
+                    </div>
                   </div>
                   
                   <div className="flex justify-end space-x-2">
@@ -257,7 +363,7 @@ const Profile = () => {
                       <User className="text-muted-foreground mr-3" size={18} />
                       <div>
                         <p className="text-sm text-muted-foreground">Full Name</p>
-                        <p>{profileData.name}</p>
+                        <p>{profileData.firstName} {profileData.lastName}</p>
                       </div>
                     </div>
                     
@@ -273,7 +379,7 @@ const Profile = () => {
                       <Phone className="text-muted-foreground mr-3" size={18} />
                       <div>
                         <p className="text-sm text-muted-foreground">Phone</p>
-                        <p>{profileData.phone}</p>
+                        <p>{profileData.phone || 'Not provided'}</p>
                       </div>
                     </div>
                     
@@ -281,7 +387,64 @@ const Profile = () => {
                       <MapPin className="text-muted-foreground mr-3" size={18} />
                       <div>
                         <p className="text-sm text-muted-foreground">Address</p>
-                        <p>{profileData.address}</p>
+                        <p>{profileData.address || 'Not provided'}</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-3 mt-3">
+                      <h4 className="font-medium mb-2">Additional Information</h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Date of Birth</p>
+                          <p>{profileData.dob || 'Not provided'}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground">Age</p>
+                          <p>{profileData.age || 'Not provided'}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground">Gender</p>
+                          <p>{profileData.gender || 'Not provided'}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground">Emergency Contact</p>
+                          <p>{profileData.emergencyContact || 'Not provided'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-3 mt-3">
+                      <h4 className="font-medium mb-2">Health Information</h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Health Condition</p>
+                          <p>{profileData.health?.condition || 'None reported'}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground">Current Treatment</p>
+                          <p>{profileData.health?.treatment || 'None'}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground">Height</p>
+                          <p>{profileData.health?.height || 'Not provided'}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground">Weight</p>
+                          <p>{profileData.health?.weight || 'Not provided'}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground">Blood Group</p>
+                          <p>{profileData.health?.bloodGroup || 'Not provided'}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -805,7 +968,7 @@ const Profile = () => {
           <div className="flex-grow">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold">{profileData.name}</h1>
+                <h1 className="text-2xl font-bold">{user?.firstName} {user?.lastName}</h1>
                 <p className="text-muted-foreground">Member since January 2023</p>
               </div>
               
@@ -823,7 +986,7 @@ const Profile = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <MapPin size={18} />
-                <span>{profileData.address}</span>
+                <span>{user?.address || 'Address not provided'}</span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Bell size={18} />
@@ -831,7 +994,7 @@ const Profile = () => {
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <CreditCard size={18} />
-                <span>Payment Methods: 2</span>
+                <span>Payment: Cash on delivery</span>
               </div>
             </div>
           </div>
@@ -917,8 +1080,6 @@ const Profile = () => {
           </div>
         </div>
       </main>
-      
-      <VoiceAssistant />
       
       <Footer />
     </>

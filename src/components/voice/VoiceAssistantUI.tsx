@@ -46,7 +46,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
       {/* Voice Assistant Button - Fixed position at right bottom corner */}
       <Button 
         onClick={() => setIsOpen(true)} 
-        className="fixed bottom-6 right-6 rounded-full shadow-lg w-14 h-14 z-50 bg-guardian-500 hover:bg-guardian-600"
+        className="fixed bottom-6 right-6 rounded-full shadow-lg w-14 h-14 z-50 bg-guardian-500 hover:bg-guardian-600 animate-pulse"
         size="icon"
         variant="default"
       >
