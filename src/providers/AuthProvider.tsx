@@ -3,10 +3,27 @@ import React, { useState, useEffect } from 'react';
 import { AuthContext } from '@/hooks/useAuth';
 import { toast } from '@/components/ui/use-toast';
 
+interface UserHealth {
+  condition?: string;
+  treatment?: string;
+  height?: string;
+  weight?: string;
+  bloodGroup?: string;
+}
+
 interface User {
   id: string;
   email: string;
+  firstName: string;
+  lastName: string;
   name: string;
+  dob?: string;
+  phone?: string;
+  age?: number;
+  emergencyContact?: string;
+  health?: UserHealth;
+  gender?: string;
+  address?: string;
 }
 
 interface AuthProviderProps {
@@ -41,19 +58,15 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         return Promise.reject(new Error("Incorrect password. Please try again."));
       }
       
-      // Login successful, store current user
-      const currentUser = {
-        id: existingUser.id,
-        email: existingUser.email,
-        name: existingUser.name
-      };
+      // Login successful, store current user (without password)
+      const { password: _, ...userWithoutPassword } = existingUser;
       
-      localStorage.setItem('user', JSON.stringify(currentUser));
-      setUser(currentUser);
+      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
+      setUser(userWithoutPassword);
       
       toast({
         title: "Login successful",
-        description: `Welcome back, ${currentUser.name}!`,
+        description: `Welcome back, ${userWithoutPassword.firstName}!`,
       });
       
       return Promise.resolve();
@@ -64,43 +77,31 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const signup = async (email: string, password: string, name: string) => {
+  const signup = async (userData: Omit<User, 'id'> & { password: string }) => {
     setIsLoading(true);
     try {
       // Check if user already exists
       const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const existingUser = storedUsers.find((u: any) => u.email === email);
+      const existingUser = storedUsers.find((u: any) => u.email === userData.email);
       
       if (existingUser) {
         return Promise.reject(new Error("Email already in use. Please use a different email or login."));
       }
       
-      // Create new user
+      // Create new user with ID
       const newUser = {
         id: `user_${Date.now()}`,
-        email,
-        name,
-        password // In a real app, this would be hashed
+        ...userData,
+        name: `${userData.firstName} ${userData.lastName}`
       };
       
       // Store user in users array
       storedUsers.push(newUser);
       localStorage.setItem('users', JSON.stringify(storedUsers));
       
-      // Create current user object (without password)
-      const currentUser = {
-        id: newUser.id,
-        email: newUser.email,
-        name: newUser.name
-      };
-      
-      // Set current user
-      localStorage.setItem('user', JSON.stringify(currentUser));
-      setUser(currentUser);
-      
       toast({
         title: "Account created",
-        description: `Welcome to Guardian Go, ${name}!`,
+        description: `Welcome to Guardian Go, ${userData.firstName}!`,
       });
       
       return Promise.resolve();

@@ -23,7 +23,38 @@ interface Caregiver {
   status: 'assigned' | 'en-route' | 'arrived' | 'in-service' | 'completed';
 }
 
+// Mock data for caregivers
+const mockCaregivers = [
+  {
+    id: 'cg-123',
+    name: 'Sarah Johnson',
+    avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+    location: { lat: 37.7749, lng: -122.4194 },
+    eta: 15,
+    status: 'en-route'
+  },
+  {
+    id: 'cg-124',
+    name: 'Michael Rodriguez',
+    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+    location: { lat: 37.7833, lng: -122.4167 },
+    eta: 8,
+    status: 'en-route'
+  },
+  {
+    id: 'cg-125',
+    name: 'Emily Chen',
+    avatar: 'https://randomuser.me/api/portraits/women/33.jpg',
+    location: { lat: 37.7951, lng: -122.4048 },
+    eta: 22,
+    status: 'en-route'
+  }
+];
+
 const LiveTracking = () => {
+  // Get caregiver ID from session or URL parameter in a real app
+  const caregiverIdRef = useRef<string>(localStorage.getItem('selectedCaregiverId') || 'cg-123');
+  
   const [caregiver, setCaregiver] = useState<Caregiver | null>(null);
   const [progress, setProgress] = useState(0);
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -33,19 +64,9 @@ const LiveTracking = () => {
   // Simulate caregiver location updates
   useEffect(() => {
     // In a real app, this would use a WebSocket or polling to get real-time updates
-    const mockCaregiver: Caregiver = {
-      id: 'cg-123',
-      name: 'Sarah Johnson',
-      avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-      location: {
-        lat: 37.7749,
-        lng: -122.4194
-      },
-      eta: 15,
-      status: 'en-route'
-    };
+    const selectedCaregiver = mockCaregivers.find(cg => cg.id === caregiverIdRef.current) || mockCaregivers[0];
     
-    setCaregiver(mockCaregiver);
+    setCaregiver(selectedCaregiver);
     
     // Simulate progress updates
     const interval = setInterval(() => {
@@ -108,13 +129,13 @@ const LiveTracking = () => {
   const contactCaregiver = (method: 'call' | 'message') => {
     if (method === 'call') {
       toast({
-        title: "Calling caregiver",
-        description: "Connecting to Sarah Johnson...",
+        title: `Calling ${caregiver?.name}`,
+        description: `Connecting to ${caregiver?.name}...`,
       });
     } else {
       toast({
         title: "Message sent",
-        description: "Your message has been sent to Sarah Johnson.",
+        description: `Your message has been sent to ${caregiver?.name}.`,
       });
     }
   };
@@ -243,6 +264,10 @@ const LiveTracking = () => {
             <div className="flex">
               <Clock size={16} className="mr-2 text-muted-foreground" />
               <span>Today, 3:00 PM - 5:00 PM</span>
+            </div>
+            <div className="mt-4">
+              <p className="font-medium">Payment Method</p>
+              <p className="text-sm text-muted-foreground">Cash on delivery</p>
             </div>
           </div>
         </div>

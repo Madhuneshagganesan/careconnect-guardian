@@ -19,6 +19,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import AuthProvider from "./providers/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
 import VoiceAssistant from "./components/voice/VoiceAssistant";
+import SOSButton from "./components/sos/SOSButton";
 
 const queryClient = new QueryClient();
 
@@ -51,9 +52,9 @@ const AppRoutes = () => {
   if (!isAuthenticated) {
     return (
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
+        <Route path="/signup" element={<AuthRoute><SignUp /></AuthRoute>} />
+        <Route path="/forgot-password" element={<AuthRoute><ForgotPassword /></AuthRoute>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -62,14 +63,14 @@ const AppRoutes = () => {
   // If authenticated, show all routes
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/caregivers" element={<Caregivers />} />
-      <Route path="/caregivers/:id" element={<CaregiverDetail />} />
-      <Route path="/services" element={<Services />} />
-      <Route path="/how-it-works" element={<HowItWorks />} />
-      <Route path="/about" element={<AboutUs />} />
-      <Route path="/book-service" element={<BookService />} />
-      <Route path="/profile" element={<Profile />} />
+      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/caregivers" element={<ProtectedRoute><Caregivers /></ProtectedRoute>} />
+      <Route path="/caregivers/:id" element={<ProtectedRoute><CaregiverDetail /></ProtectedRoute>} />
+      <Route path="/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
+      <Route path="/how-it-works" element={<ProtectedRoute><HowItWorks /></ProtectedRoute>} />
+      <Route path="/about" element={<ProtectedRoute><AboutUs /></ProtectedRoute>} />
+      <Route path="/book-service" element={<ProtectedRoute><BookService /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/signup" element={<Navigate to="/" replace />} />
       <Route path="/forgot-password" element={<Navigate to="/" replace />} />
@@ -86,11 +87,26 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AppRoutes />
-          <VoiceAssistant />
+          {/* Show SOS and Voice Assistant buttons only when authenticated */}
+          <AppExtras />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
+
+// Component to conditionally render SOS and Voice Assistant buttons
+const AppExtras = () => {
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) return null;
+  
+  return (
+    <>
+      <SOSButton />
+      <VoiceAssistant />
+    </>
+  );
+};
 
 export default App;
