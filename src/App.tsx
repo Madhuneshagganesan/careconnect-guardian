@@ -87,26 +87,23 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AppRoutes />
-          {/* Show SOS and Voice Assistant buttons only when authenticated */}
-          <AppExtras />
+          {/* Always show Voice Assistant regardless of auth status */}
+          <VoiceAssistant />
+          {/* Show SOS button only when authenticated */}
+          <SOSContent />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
 
-// Component to conditionally render SOS and Voice Assistant buttons
-const AppExtras = () => {
+// Component to conditionally render SOS button
+const SOSContent = () => {
   const { isAuthenticated } = useAuth();
   
   if (!isAuthenticated) return null;
   
-  return (
-    <>
-      <SOSButton />
-      <VoiceAssistant />
-    </>
-  );
+  return <SOSButton />;
 };
 
 export default App;

@@ -85,24 +85,42 @@ const VoiceAssistant = () => {
   }, []);
   
   return (
-    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-      <AlertDialogContent className="sm:max-w-md">
-        <VoiceAssistantUI
-          isOpen={isOpen}
-          setIsOpen={setIsOpen}
-          isListening={isListening}
-          toggleListening={toggleListening}
-          transcript={transcript}
-          conversationHistory={conversationHistory}
-          isLoading={isLoading}
-          isSpeaking={isSpeaking}
-          response={response}
-          processCommand={processCommand}
-          speakResponse={speakResponse}
-          stopSpeaking={stopSpeaking}
-        />
-      </AlertDialogContent>
-    </AlertDialog>
+    <>
+      <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+        <AlertDialogContent className="sm:max-w-md">
+          <VoiceAssistantUI
+            isOpen={isOpen}
+            setIsOpen={setIsOpen}
+            isListening={isListening}
+            toggleListening={toggleListening}
+            transcript={transcript}
+            conversationHistory={conversationHistory}
+            isLoading={isLoading}
+            isSpeaking={isSpeaking}
+            response={response}
+            processCommand={processCommand}
+            speakResponse={speakResponse}
+            stopSpeaking={stopSpeaking}
+          />
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Always visible floating button */}
+      <VoiceAssistantUI
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
+        isListening={isListening}
+        toggleListening={toggleListening}
+        transcript={transcript}
+        conversationHistory={conversationHistory}
+        isLoading={isLoading}
+        isSpeaking={isSpeaking}
+        response={response}
+        processCommand={processCommand}
+        speakResponse={speakResponse}
+        stopSpeaking={stopSpeaking}
+      />
+    </>
   );
 };
 
