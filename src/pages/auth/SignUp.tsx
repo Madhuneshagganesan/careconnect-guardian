@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -119,6 +118,7 @@ const SignUp = () => {
         lastName,
         email,
         password,
+        name: `${firstName} ${lastName}`,
         dob,
         phone,
         age: Number(age),

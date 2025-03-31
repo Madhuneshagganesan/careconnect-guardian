@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Clock, Navigation, ChevronDown, ChevronUp, Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
@@ -31,7 +30,7 @@ const mockCaregivers = [
     avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
     location: { lat: 37.7749, lng: -122.4194 },
     eta: 15,
-    status: 'en-route'
+    status: 'en-route' as const
   },
   {
     id: 'cg-124',
@@ -39,7 +38,7 @@ const mockCaregivers = [
     avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
     location: { lat: 37.7833, lng: -122.4167 },
     eta: 8,
-    status: 'en-route'
+    status: 'en-route' as const
   },
   {
     id: 'cg-125',
@@ -47,7 +46,7 @@ const mockCaregivers = [
     avatar: 'https://randomuser.me/api/portraits/women/33.jpg',
     location: { lat: 37.7951, lng: -122.4048 },
     eta: 22,
-    status: 'en-route'
+    status: 'en-route' as const
   }
 ];
 
@@ -74,7 +73,7 @@ const LiveTracking = () => {
         if (prev >= 100) {
           clearInterval(interval);
           // Update caregiver status when they arrive
-          setCaregiver(c => c ? {...c, status: 'arrived', eta: 0} : null);
+          setCaregiver(c => c ? {...c, status: 'arrived' as const, eta: 0} : null);
           return 100;
         }
         return prev + 5;
