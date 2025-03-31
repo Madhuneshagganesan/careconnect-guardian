@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
@@ -173,7 +174,6 @@ const Profile = () => {
     });
   };
 
-  // Add handleAddReview function
   const handleAddReview = (id: number) => {
     toast({
       title: "Add Review",
@@ -876,4 +876,203 @@ const Profile = () => {
                           <Clock size={16} />
                           <span>2 hours</span>
                         </div>
-                        <div className="flex items-center gap-
+                        <div className="flex items-center gap-1">
+                          <User size={16} />
+                          <span>Michael Thompson</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleCancel(2)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          variant="primary" 
+                          size="sm"
+                        >
+                          <a href="#tracking">Track</a>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-medium">Medical Care Visit</h3>
+                          <p className="text-sm text-muted-foreground">July 15, 2023, 2:00 PM - 3:30 PM</p>
+                        </div>
+                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Completed</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+                        <div className="flex items-center gap-1">
+                          <Clock size={16} />
+                          <span>1.5 hours</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <User size={16} />
+                          <span>Dr. Emily Davies</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleAddReview(3)}
+                        >
+                          Add Review
+                        </Button>
+                        <Button 
+                          variant="primary" 
+                          size="sm"
+                          onClick={() => {
+                            toast({
+                              title: "Booking Again",
+                              description: "Redirecting you to book this service again.",
+                            });
+                            navigate('/book-service');
+                          }}
+                        >
+                          Book Again
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-medium">Physical Therapy</h3>
+                          <p className="text-sm text-muted-foreground">July 10, 2023, 11:00 AM - 12:00 PM</p>
+                        </div>
+                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Completed</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+                        <div className="flex items-center gap-1">
+                          <Clock size={16} />
+                          <span>1 hour</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <User size={16} />
+                          <span>Michael Thompson</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleAddReview(4)}
+                        >
+                          Add Review
+                        </Button>
+                        <Button 
+                          variant="primary" 
+                          size="sm"
+                          onClick={() => {
+                            toast({
+                              title: "Booking Again",
+                              description: "Redirecting you to book this service again.",
+                            });
+                            navigate('/book-service');
+                          }}
+                        >
+                          Book Again
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AnimatedCard>
+          </>
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Navbar />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="md:col-span-1">
+            <AnimatedCard>
+              <div className="p-6">
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="flex-shrink-0 h-16 w-16 bg-guardian-100 rounded-full flex items-center justify-center text-guardian-600 text-xl font-semibold">
+                    {profileData.firstName?.[0]}{profileData.lastName?.[0]}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold">{profileData.firstName} {profileData.lastName}</h2>
+                    <p className="text-sm text-muted-foreground">{profileData.email}</p>
+                  </div>
+                </div>
+                
+                <nav className="space-y-1">
+                  <button 
+                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${activeSidebarItem === 'appointments' ? 'bg-guardian-100 text-guardian-900' : 'hover:bg-slate-100'}`}
+                    onClick={() => setActiveSidebarItem('appointments')}
+                  >
+                    <CalendarIcon className="mr-3" size={18} />
+                    <span>Appointments</span>
+                  </button>
+                  
+                  <button 
+                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${activeSidebarItem === 'personal-info' ? 'bg-guardian-100 text-guardian-900' : 'hover:bg-slate-100'}`}
+                    onClick={() => setActiveSidebarItem('personal-info')}
+                  >
+                    <User className="mr-3" size={18} />
+                    <span>Personal Information</span>
+                  </button>
+                  
+                  <button 
+                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${activeSidebarItem === 'favorite-caregivers' ? 'bg-guardian-100 text-guardian-900' : 'hover:bg-slate-100'}`}
+                    onClick={() => setActiveSidebarItem('favorite-caregivers')}
+                  >
+                    <Heart className="mr-3" size={18} />
+                    <span>Favorite Caregivers</span>
+                  </button>
+                  
+                  <button 
+                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${activeSidebarItem === 'payment-methods' ? 'bg-guardian-100 text-guardian-900' : 'hover:bg-slate-100'}`}
+                    onClick={() => setActiveSidebarItem('payment-methods')}
+                  >
+                    <CreditCard className="mr-3" size={18} />
+                    <span>Payment Methods</span>
+                  </button>
+                  
+                  <button 
+                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${activeSidebarItem === 'settings' ? 'bg-guardian-100 text-guardian-900' : 'hover:bg-slate-100'}`}
+                    onClick={() => setActiveSidebarItem('settings')}
+                  >
+                    <Settings className="mr-3" size={18} />
+                    <span>Settings</span>
+                  </button>
+                  
+                  <button 
+                    className="w-full flex items-center px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors mt-8"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-3" size={18} />
+                    <span>Sign Out</span>
+                  </button>
+                </nav>
+              </div>
+            </AnimatedCard>
+          </div>
+          
+          <div className="md:col-span-3">
+            {renderSidebarContent()}
+          </div>
+        </div>
+      </div>
+      
+      <Footer />
+    </div>
+  );
+};
+
+export default Profile;
