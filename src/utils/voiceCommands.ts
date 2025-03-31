@@ -6,6 +6,12 @@ type CommandData = {
   response: string;
 };
 
+// Command match result type
+interface CommandMatch {
+  type: 'assistant' | 'navigation' | 'service';
+  data: CommandData | { response: string; path?: string };
+}
+
 // Define commands interfaces
 export interface NavigationCommands {
   [key: string]: CommandData;
@@ -266,10 +272,16 @@ const defaultPageContext = {
 };
 
 // Find best match for a command
-export const findBestCommandMatch = (userCommand: string) => {
+export const findBestCommandMatch = (userCommand: string): CommandMatch | null => {
   // First check for assistant control commands
   if (assistantCommands[userCommand]) {
-    return { type: 'assistant', data: { response: assistantCommands[userCommand] } };
+    return { 
+      type: 'assistant', 
+      data: { 
+        response: assistantCommands[userCommand],
+        path: '' // Add empty path to ensure consistent structure
+      } 
+    };
   }
   
   // Then check for exact matches in navigation commands
@@ -285,7 +297,13 @@ export const findBestCommandMatch = (userCommand: string) => {
   // If no exact match, look for partial matches in assistant commands
   for (const [phrase, response] of Object.entries(assistantCommands)) {
     if (userCommand.includes(phrase)) {
-      return { type: 'assistant', data: { response } };
+      return { 
+        type: 'assistant', 
+        data: { 
+          response,
+          path: '' // Add empty path to ensure consistent structure
+        } 
+      };
     }
   }
   
@@ -333,7 +351,13 @@ export const findBestCommandMatch = (userCommand: string) => {
   }
   
   if (/close|exit|dismiss|shut|bye|goodbye|end/i.test(userCommand)) {
-    return { type: 'assistant', data: { response: 'Closing the assistant.' } };
+    return { 
+      type: 'assistant', 
+      data: { 
+        response: 'Closing the assistant.',
+        path: '' // Add empty path to ensure consistent structure
+      } 
+    };
   }
   
   // If no match found
