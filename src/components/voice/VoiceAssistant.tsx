@@ -12,9 +12,10 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useConversationHistory } from '@/hooks/useConversationHistory';
 import { useVoiceCommandProcessor } from '@/hooks/useVoiceCommandProcessor';
-import { VoiceAssistantUI } from './VoiceAssistantUI';
 import { useLocation } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
+import { X } from 'lucide-react';
+import { Button } from '@/components/ui/shadcn-button';
 
 const VoiceAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,6 +55,19 @@ const VoiceAssistant = () => {
     addMessageToHistory,
     currentPage
   );
+  
+  // Listen for voice assistant close event
+  useEffect(() => {
+    const handleVoiceAssistantClose = () => {
+      setIsOpen(false);
+    };
+    
+    document.addEventListener('voiceAssistantClose', handleVoiceAssistantClose);
+    
+    return () => {
+      document.removeEventListener('voiceAssistantClose', handleVoiceAssistantClose);
+    };
+  }, []);
   
   // Check if browser supports speech recognition
   useEffect(() => {
@@ -128,9 +142,18 @@ const VoiceAssistant = () => {
               <span>Voice Assistant</span>
               <VoiceCommandHelp />
             </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 rounded-full"
+              onClick={() => setIsOpen(false)}
+              aria-label="Close dialog"
+            >
+              <X size={16} />
+            </Button>
           </AlertDialogTitle>
           <AlertDialogDescription>
-            Try saying "Go to home page", "Go to caregivers page", "Go to how it works page", "Go to about us page", or ask about specific services like "Tell me about meal preparation".
+            Try saying "Go to home page", "Go to caregivers page", "Go to how it works page", "Go to about us page", "Close assistant", or ask about specific services like "Tell me about meal preparation".
           </AlertDialogDescription>
         </AlertDialogHeader>
         
@@ -204,6 +227,7 @@ const VoiceAssistant = () => {
       <button 
         onClick={() => setIsOpen(true)} 
         className="fixed bottom-6 right-6 rounded-full shadow-lg w-14 h-14 z-50 bg-guardian-500 hover:bg-guardian-600 text-white flex items-center justify-center"
+        aria-label="Open voice assistant"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="23"></line><line x1="8" x2="16" y1="23" y2="23"></line></svg>
         {isListening && (

@@ -23,6 +23,17 @@ const VoiceCommandHelp = () => {
   // Organize commands by category for better readability
   const commandCategories = [
     {
+      category: "Assistant Controls",
+      examples: [
+        "Close",
+        "Exit",
+        "Bye",
+        "Help",
+        "What can you do?",
+        "Show commands"
+      ]
+    },
+    {
       category: "Navigation",
       examples: [
         "Go to home page",
@@ -52,12 +63,12 @@ const VoiceCommandHelp = () => {
       ]
     },
     {
-      category: "Conversational",
+      category: "FAQ",
       examples: [
-        "Hello",
-        "Thank you",
-        "What can you do?",
-        "Help"
+        "Hours of operation",
+        "Pricing",
+        "Insurance",
+        "Qualifications"
       ]
     }
   ];

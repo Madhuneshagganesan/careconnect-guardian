@@ -15,6 +15,10 @@ export interface ServiceCategories {
   [key: string]: CommandData;
 }
 
+export interface AssistantCommands {
+  [key: string]: string;
+}
+
 // Context-specific responses for different pages
 export interface PageContextResponses {
   [key: string]: {
@@ -166,6 +170,31 @@ export const serviceCategories: ServiceCategories = {
   'exercise help': { path: '/services', response: "We provide exercise assistance. Let me show you our services." }
 };
 
+// Assistant control commands
+export const assistantCommands: AssistantCommands = {
+  // Close/exit commands
+  'close': 'Closing the assistant.',
+  'close assistant': 'Closing the voice assistant.',
+  'exit': 'Exiting the voice assistant.',
+  'exit assistant': 'Exiting the assistant.',
+  'dismiss': 'Dismissing the assistant.',
+  'bye': 'Goodbye! Closing the assistant.',
+  'goodbye': 'Goodbye! Closing the assistant.',
+  'end conversation': 'Ending our conversation.',
+  
+  // Help commands
+  'help': 'I can help you navigate the site, find information, or book services. Try saying "Go to home page" or "Tell me about meal preparation".',
+  'what can you do': 'I can navigate to different pages, provide information about our services, and help you book appointments. Try asking me about specific services or saying "Go to profile".',
+  'commands': 'Some commands you can use include "Go to home", "Book a caregiver", "Tell me about services", or "Close assistant".',
+  'show commands': 'You can navigate by saying "Go to [page name]", ask about services like "Tell me about cleaning", or control me by saying "Close" or "Stop listening".',
+  
+  // FAQ commands
+  'hours of operation': 'Our caregivers are available 24/7. You can book services at any time through our website.',
+  'pricing': 'Our pricing varies based on the type of service and duration. Please visit the services page for detailed pricing information.',
+  'insurance': 'We accept most major insurance plans. Please contact us directly for specific information about your insurance coverage.',
+  'qualifications': 'All our caregivers are certified professionals with background checks, relevant degrees, and extensive experience in their fields.',
+};
+
 // Page-specific context responses
 export const pageContextResponses: PageContextResponses = {
   "/": {
@@ -238,7 +267,12 @@ const defaultPageContext = {
 
 // Find best match for a command
 export const findBestCommandMatch = (userCommand: string) => {
-  // First check for exact matches in navigation commands
+  // First check for assistant control commands
+  if (assistantCommands[userCommand]) {
+    return { type: 'assistant', data: { response: assistantCommands[userCommand] } };
+  }
+  
+  // Then check for exact matches in navigation commands
   if (navigationCommands[userCommand]) {
     return { type: 'navigation', data: navigationCommands[userCommand] };
   }
@@ -248,7 +282,14 @@ export const findBestCommandMatch = (userCommand: string) => {
     return { type: 'service', data: serviceCategories[userCommand] };
   }
   
-  // If no exact match, look for partial matches in navigation commands
+  // If no exact match, look for partial matches in assistant commands
+  for (const [phrase, response] of Object.entries(assistantCommands)) {
+    if (userCommand.includes(phrase)) {
+      return { type: 'assistant', data: { response } };
+    }
+  }
+  
+  // Look for partial matches in navigation commands
   for (const [phrase, data] of Object.entries(navigationCommands)) {
     if (userCommand.includes(phrase)) {
       return { type: 'navigation', data };
@@ -291,6 +332,10 @@ export const findBestCommandMatch = (userCommand: string) => {
     return { type: 'navigation', data: navigationCommands['go to services'] };
   }
   
+  if (/close|exit|dismiss|shut|bye|goodbye|end/i.test(userCommand)) {
+    return { type: 'assistant', data: { response: 'Closing the assistant.' } };
+  }
+  
   // If no match found
   return null;
 };
@@ -316,6 +361,8 @@ export const processVoiceCommand = async (
   let responseText = '';
   let navigationPath = '';
   let navigationDelay = 1000;
+  let closeAssistant = false;
+  
   const isCurrentPageQuery = /where am i|what page|current page|this page/i.test(command);
 
   // Handle page-specific queries
@@ -336,14 +383,27 @@ export const processVoiceCommand = async (
     const match = findBestCommandMatch(command);
     
     if (match) {
-      navigationPath = match.data.path;
-      
-      // Only add context if not navigating to the current page
-      if (navigationPath !== currentPage) {
+      if (match.type === 'assistant') {
         responseText = match.data.response;
-      } else {
-        responseText = `You're already on ${match.data.path === '/' ? 'the home page' : 'this page'}. ${getPageContextResponse(currentPage)}`;
-        navigationPath = ''; // Don't navigate if already on the page
+        
+        // Check if this is a close/exit command
+        if (/close|exit|dismiss|bye|goodbye|end/i.test(command) || 
+            /close|exit|dismiss|bye|goodbye|end/i.test(responseText)) {
+          closeAssistant = true;
+        }
+      } else if (match.type === 'navigation') {
+        navigationPath = match.data.path;
+        
+        // Only add context if not navigating to the current page
+        if (navigationPath !== currentPage) {
+          responseText = match.data.response;
+        } else {
+          responseText = `You're already on ${match.data.path === '/' ? 'the home page' : 'this page'}. ${getPageContextResponse(currentPage)}`;
+          navigationPath = ''; // Don't navigate if already on the page
+        }
+      } else if (match.type === 'service') {
+        navigationPath = match.data.path;
+        responseText = match.data.response;
       }
     } else {
       // Handle search-like queries with context awareness
@@ -367,6 +427,7 @@ export const processVoiceCommand = async (
         }
         else if (command.includes('bye') || command.includes('goodbye')) {
           responseText = "Goodbye! Feel free to ask for help anytime.";
+          closeAssistant = true;
         }
         else if (command.includes('help') || command.includes('assist')) {
           const pageContext = pageContextResponses[currentPage] || defaultPageContext;
@@ -392,6 +453,16 @@ export const processVoiceCommand = async (
   // Navigate if a path was set
   if (navigationPath) {
     setTimeout(() => navigate(navigationPath), navigationDelay);
+  }
+  
+  // Handle closing the assistant
+  if (closeAssistant) {
+    // We'll pass this back to the VoiceAssistant component via callback
+    // The actual closing will happen in the component
+    setTimeout(() => {
+      // This will be handled by whoever calls processVoiceCommand
+      document.dispatchEvent(new CustomEvent('closeVoiceAssistant'));
+    }, 1500);  // Give time for the response to be spoken
   }
   
   return responseText;

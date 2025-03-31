@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import { processVoiceCommand } from '@/utils/voiceCommands';
@@ -15,6 +15,20 @@ export const useVoiceCommandProcessor = (
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState('');
+  
+  useEffect(() => {
+    // Listen for the custom closeVoiceAssistant event
+    const handleCloseAssistant = () => {
+      // This will be used by the VoiceAssistant component
+      document.dispatchEvent(new CustomEvent('voiceAssistantClose'));
+    };
+    
+    document.addEventListener('closeVoiceAssistant', handleCloseAssistant);
+    
+    return () => {
+      document.removeEventListener('closeVoiceAssistant', handleCloseAssistant);
+    };
+  }, []);
   
   const processCommand = async () => {
     if (!transcript.trim()) return;
