@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Clock, Navigation, ChevronDown, ChevronUp, Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
@@ -8,7 +9,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { useFavoriteCaregivers } from '@/hooks/useFavoriteCaregivers';
 import LiveTrackingMap from './LiveTrackingMap';
 
 interface Caregiver {
@@ -59,6 +61,7 @@ const LiveTracking = () => {
   // Get caregiver ID from booking or localStorage
   const selectedCaregiverId = latestBooking?.caregiverId?.toString() || localStorage.getItem('selectedCaregiverId') || '1';
   
+  const { favorites, toggleFavorite } = useFavoriteCaregivers();
   const [caregiver, setCaregiver] = useState<Caregiver | null>(null);
   const [progress, setProgress] = useState(0);
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -140,26 +143,9 @@ const LiveTracking = () => {
     }
   };
   
-  const addToFavorites = () => {
+  const handleFavoriteToggle = () => {
     if (!caregiver) return;
-    
-    // In a real app, this would be stored in a database
-    const favorites = JSON.parse(localStorage.getItem('favoriteCaregivers') || '[]');
-    
-    if (!favorites.includes(caregiver.id)) {
-      favorites.push(caregiver.id);
-      localStorage.setItem('favoriteCaregivers', JSON.stringify(favorites));
-      
-      toast({
-        title: "Added to Favorites",
-        description: `${caregiver.name} has been added to your favorite caregivers.`,
-      });
-    } else {
-      toast({
-        title: "Already in Favorites",
-        description: `${caregiver.name} is already in your favorites.`,
-      });
-    }
+    toggleFavorite(caregiver.id);
   };
   
   if (!caregiver) {
@@ -179,14 +165,14 @@ const LiveTracking = () => {
     <Card className="p-6 shadow-md w-full max-w-md mx-auto">
       <div className="flex items-center space-x-4 mb-6">
         <div>
-          <h3 className="font-medium text-lg">{caregiver?.name}</h3>
+          <h3 className="font-medium text-lg">{caregiver.name}</h3>
           <div className="flex items-center text-sm text-muted-foreground">
             <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
-              caregiver?.status === 'en-route' ? 'bg-amber-500' : 
-              caregiver?.status === 'arrived' ? 'bg-green-500' : 
-              caregiver?.status === 'in-service' ? 'bg-blue-500' : 'bg-gray-500'
+              caregiver.status === 'en-route' ? 'bg-amber-500' : 
+              caregiver.status === 'arrived' ? 'bg-green-500' : 
+              caregiver.status === 'in-service' ? 'bg-blue-500' : 'bg-gray-500'
             }`}></span>
-            <span className="capitalize">{caregiver?.status?.replace('-', ' ')}</span>
+            <span className="capitalize">{caregiver.status.replace('-', ' ')}</span>
           </div>
         </div>
         <div className="flex gap-2 ml-auto">
@@ -210,23 +196,33 @@ const LiveTracking = () => {
             variant="outline" 
             size="icon" 
             className="h-9 w-9 rounded-full"
-            onClick={addToFavorites}
+            onClick={handleFavoriteToggle}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+            <svg 
+              className="w-4 h-4" 
+              fill={favorites.includes(caregiver.id) ? "currentColor" : "none"} 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth="2" 
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              ></path>
             </svg>
           </Button>
         </div>
       </div>
       
       <div className="space-y-4">
-        {caregiver?.status === 'en-route' && (
+        {caregiver.status === 'en-route' && (
           <>
             <div className="bg-muted p-4 rounded-lg flex items-center space-x-3">
               <Clock className="text-muted-foreground" size={20} />
               <div>
                 <p className="text-sm text-muted-foreground">Estimated arrival in</p>
-                <p className="font-medium">{caregiver?.eta} minutes</p>
+                <p className="font-medium">{caregiver.eta} minutes</p>
               </div>
             </div>
             
@@ -264,7 +260,7 @@ const LiveTracking = () => {
               <CollapsibleContent>
                 <div className="mt-2">
                   <LiveTrackingMap 
-                    caregiverPosition={{ lng: caregiver?.location.lng, lat: caregiver?.location.lat }}
+                    caregiverPosition={{ lng: caregiver.location.lng, lat: caregiver.location.lat }}
                     destination={{ lng: 77.5946, lat: 12.9716 }} // Bangalore coordinates 
                   />
                 </div>
@@ -273,13 +269,13 @@ const LiveTracking = () => {
           </>
         )}
         
-        {caregiver?.status === 'arrived' && (
+        {caregiver.status === 'arrived' && (
           <div className="bg-green-50 p-4 rounded-lg text-center">
             <p className="text-green-700 font-medium">Your caregiver has arrived!</p>
           </div>
         )}
         
-        {caregiver?.status === 'in-service' && (
+        {caregiver.status === 'in-service' && (
           <div className="bg-blue-50 p-4 rounded-lg">
             <p className="text-blue-700 font-medium">Service in progress</p>
             <p className="text-sm text-blue-600 mt-1">Started at 2:30 PM</p>
@@ -299,16 +295,16 @@ const LiveTracking = () => {
             </div>
             <div className="mt-4">
               <p className="font-medium">Service</p>
-              <p className="text-sm text-muted-foreground">{serviceDetails.service}</span>
+              <p className="text-sm text-muted-foreground">{serviceDetails.service}</p>
             </div>
             <div className="flex justify-between">
               <div>
                 <p className="font-medium">Payment Method</p>
-                <p className="text-sm text-muted-foreground">{serviceDetails.payment}</span>
+                <p className="text-sm text-muted-foreground">{serviceDetails.payment}</p>
               </div>
               <div className="text-right">
                 <p className="font-medium">Total</p>
-                <p className="text-sm">{serviceDetails.price}</span>
+                <p className="text-sm">{serviceDetails.price}</p>
               </div>
             </div>
           </div>
