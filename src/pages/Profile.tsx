@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
@@ -14,7 +13,6 @@ import LiveTracking from '@/components/tracking/LiveTracking';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
-// Sample data for favorite caregivers
 const favoritesCaregivers = [
   {
     id: 1,
@@ -64,7 +62,6 @@ const Profile = () => {
     }
   });
   
-  // Update profileData when user data changes
   useEffect(() => {
     if (user) {
       setProfileData({
@@ -555,7 +552,7 @@ const Profile = () => {
         return (
           <AnimatedCard>
             <div className="p-6">
-              <h2 className="text-xl font-bold mb-6">Payment Methods</h2>
+              <h2 className="text-xl font-bold mb-6">Payment Method</h2>
               
               <div className="space-y-4 mb-6">
                 <div className="border rounded-xl p-4 hover:shadow-md transition-shadow">
@@ -565,68 +562,14 @@ const Profile = () => {
                         <CreditCard className="text-primary" size={20} />
                       </div>
                       <div>
-                        <h3 className="font-medium">Credit Card</h3>
-                        <p className="text-sm text-muted-foreground">**** **** **** 1234</p>
+                        <h3 className="font-medium">Cash on Delivery</h3>
+                        <p className="text-sm text-muted-foreground">Pay after service completion</p>
                       </div>
                     </div>
-                    <div className="flex items-center">
-                      <span className="text-xs bg-guardian-100 text-guardian-600 px-2 py-1 rounded-full mr-2">Default</span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => {
-                          toast({
-                            title: "Edit Card",
-                            description: "Card editing feature will be available soon.",
-                          });
-                        }}
-                      >
-                        <Edit size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Expires 04/2025</p>
-                </div>
-                
-                <div className="border rounded-xl p-4 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                        <span className="text-primary font-bold text-xs">UPI</span>
-                      </div>
-                      <div>
-                        <h3 className="font-medium">UPI</h3>
-                        <p className="text-sm text-muted-foreground">john.smith@upi</p>
-                      </div>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => {
-                        toast({
-                          title: "Edit UPI",
-                          description: "UPI editing feature will be available soon.",
-                        });
-                      }}
-                    >
-                      <Edit size={16} />
-                    </Button>
+                    <span className="text-xs bg-guardian-100 text-guardian-600 px-2 py-1 rounded-full">Default</span>
                   </div>
                 </div>
               </div>
-              
-              <Button 
-                variant="outline" 
-                className="w-full flex items-center justify-center gap-2"
-                onClick={() => {
-                  toast({
-                    title: "Add Payment Method",
-                    description: "Payment method addition feature will be available soon.",
-                  });
-                }}
-              >
-                <span>+</span> Add Payment Method
-              </Button>
             </div>
           </AnimatedCard>
         );

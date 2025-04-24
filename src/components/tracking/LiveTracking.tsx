@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Clock, Navigation, ChevronDown, ChevronUp, Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
@@ -114,19 +113,29 @@ const LiveTracking = () => {
       });
     }, 3000);
     
+    // Show a notification when caregiver is assigned
+    if (caregiver) {
+      toast({
+        title: "Caregiver Assigned",
+        description: `${caregiver.name} has been assigned to your service`,
+      });
+    }
+
     return () => clearInterval(interval);
   }, [selectedCaregiverId]);
   
   const contactCaregiver = (method: 'call' | 'message') => {
+    if (!caregiver) return;
+    
     if (method === 'call') {
       toast({
-        title: `Calling ${caregiver?.name}`,
-        description: `Connecting to ${caregiver?.name}...`,
+        title: "Calling Caregiver",
+        description: `Connecting you with ${caregiver.name}...`,
       });
     } else {
       toast({
-        title: "Message sent",
-        description: `Your message has been sent to ${caregiver?.name}.`,
+        title: "Message Sent",
+        description: `Your message has been sent to ${caregiver.name}. They will respond shortly.`,
       });
     }
   };
@@ -169,24 +178,15 @@ const LiveTracking = () => {
   return (
     <Card className="p-6 shadow-md w-full max-w-md mx-auto">
       <div className="flex items-center space-x-4 mb-6">
-        <img 
-          src={caregiver.avatar} 
-          alt={caregiver.name}
-          className="w-16 h-16 rounded-full border-2 border-primary" 
-          onError={(e) => {
-            // Fallback if image doesn't load
-            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64';
-          }}
-        />
         <div>
-          <h3 className="font-medium text-lg">{caregiver.name}</h3>
+          <h3 className="font-medium text-lg">{caregiver?.name}</h3>
           <div className="flex items-center text-sm text-muted-foreground">
             <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
-              caregiver.status === 'en-route' ? 'bg-amber-500' : 
-              caregiver.status === 'arrived' ? 'bg-green-500' : 
-              caregiver.status === 'in-service' ? 'bg-blue-500' : 'bg-gray-500'
+              caregiver?.status === 'en-route' ? 'bg-amber-500' : 
+              caregiver?.status === 'arrived' ? 'bg-green-500' : 
+              caregiver?.status === 'in-service' ? 'bg-blue-500' : 'bg-gray-500'
             }`}></span>
-            <span className="capitalize">{caregiver.status.replace('-', ' ')}</span>
+            <span className="capitalize">{caregiver?.status?.replace('-', ' ')}</span>
           </div>
         </div>
         <div className="flex gap-2 ml-auto">
@@ -220,13 +220,13 @@ const LiveTracking = () => {
       </div>
       
       <div className="space-y-4">
-        {caregiver.status === 'en-route' && (
+        {caregiver?.status === 'en-route' && (
           <>
             <div className="bg-muted p-4 rounded-lg flex items-center space-x-3">
               <Clock className="text-muted-foreground" size={20} />
               <div>
                 <p className="text-sm text-muted-foreground">Estimated arrival in</p>
-                <p className="font-medium">{caregiver.eta} minutes</p>
+                <p className="font-medium">{caregiver?.eta} minutes</p>
               </div>
             </div>
             
@@ -264,7 +264,7 @@ const LiveTracking = () => {
               <CollapsibleContent>
                 <div className="mt-2">
                   <LiveTrackingMap 
-                    caregiverPosition={{ lng: caregiver.location.lng, lat: caregiver.location.lat }}
+                    caregiverPosition={{ lng: caregiver?.location.lng, lat: caregiver?.location.lat }}
                     destination={{ lng: 77.5946, lat: 12.9716 }} // Bangalore coordinates 
                   />
                 </div>
@@ -273,13 +273,13 @@ const LiveTracking = () => {
           </>
         )}
         
-        {caregiver.status === 'arrived' && (
+        {caregiver?.status === 'arrived' && (
           <div className="bg-green-50 p-4 rounded-lg text-center">
             <p className="text-green-700 font-medium">Your caregiver has arrived!</p>
           </div>
         )}
         
-        {caregiver.status === 'in-service' && (
+        {caregiver?.status === 'in-service' && (
           <div className="bg-blue-50 p-4 rounded-lg">
             <p className="text-blue-700 font-medium">Service in progress</p>
             <p className="text-sm text-blue-600 mt-1">Started at 2:30 PM</p>
@@ -299,16 +299,16 @@ const LiveTracking = () => {
             </div>
             <div className="mt-4">
               <p className="font-medium">Service</p>
-              <p className="text-sm text-muted-foreground">{serviceDetails.service}</p>
+              <p className="text-sm text-muted-foreground">{serviceDetails.service}</span>
             </div>
             <div className="flex justify-between">
               <div>
                 <p className="font-medium">Payment Method</p>
-                <p className="text-sm text-muted-foreground">{serviceDetails.payment}</p>
+                <p className="text-sm text-muted-foreground">{serviceDetails.payment}</span>
               </div>
               <div className="text-right">
                 <p className="font-medium">Total</p>
-                <p className="text-sm">{serviceDetails.price}</p>
+                <p className="text-sm">{serviceDetails.price}</span>
               </div>
             </div>
           </div>
