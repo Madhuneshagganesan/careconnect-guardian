@@ -4,8 +4,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Loader2 } from 'lucide-react';
 
-// Temporary public token - in a real app, this would be stored in environment variables
-// or fetched from a server-side API
+// Mapbox token
 const MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJja2h6MmdmODkweDJsMnJxcGV3ZHVnZGZlIn0.NE9aSc5G4PiDjCEX3z-JJg';
 
 interface MapPosition {
@@ -25,6 +24,8 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const caregiverMarker = useRef<mapboxgl.Marker | null>(null);
+  const destinationMarker = useRef<mapboxgl.Marker | null>(null);
+  const routeSource = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
@@ -32,76 +33,97 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     
     mapboxgl.accessToken = MAPBOX_TOKEN;
     
-    const initializeMap = () => {
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current!,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [caregiverPosition.lng, caregiverPosition.lat],
-        zoom: 13,
-        pitch: 45,
+    // Initialize map
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current!,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [caregiverPosition.lng, caregiverPosition.lat],
+      zoom: 13,
+      pitch: 45,
+    });
+    
+    // Add navigation controls (zoom in/out, rotate)
+    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    
+    // When map loads, add markers and route
+    map.current.on('load', () => {
+      if (!map.current) return;
+      
+      // Add destination marker
+      destinationMarker.current = new mapboxgl.Marker({ color: '#5C69D1' })
+        .setLngLat([destination.lng, destination.lat])
+        .addTo(map.current)
+        .setPopup(new mapboxgl.Popup().setHTML('<p class="font-medium">Your Location</p>'));
+      
+      // Add caregiver marker
+      caregiverMarker.current = new mapboxgl.Marker({ color: '#FF775A' })
+        .setLngLat([caregiverPosition.lng, caregiverPosition.lat])
+        .addTo(map.current)
+        .setPopup(new mapboxgl.Popup().setHTML('<p class="font-medium">Your Caregiver</p>'));
+      
+      // Calculate and show the route
+      createRoute();
+      
+      // Now that map is loaded, hide the loading indicator
+      setLoading(false);
+      
+      // Fit bounds to show both markers
+      const bounds = new mapboxgl.LngLatBounds()
+        .extend([caregiverPosition.lng, caregiverPosition.lat])
+        .extend([destination.lng, destination.lat]);
+      
+      map.current.fitBounds(bounds, {
+        padding: 100,
+        maxZoom: 15
+      });
+    });
+    
+    // Create a route between caregiver and destination
+    const createRoute = () => {
+      if (!map.current) return;
+      
+      // Add the route line source
+      routeSource.current = 'route';
+      map.current.addSource(routeSource.current, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [caregiverPosition.lng, caregiverPosition.lat],
+              [destination.lng, destination.lat]
+            ]
+          }
+        }
       });
       
-      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-      
-      map.current.on('load', () => {
-        if (!map.current) return;
-        
-        // Add destination marker (static)
-        new mapboxgl.Marker({ color: '#5C69D1' })
-          .setLngLat([destination.lng, destination.lat])
-          .addTo(map.current)
-          .setPopup(new mapboxgl.Popup().setHTML('<p class="font-medium">Your Location</p>'));
-        
-        // Add caregiver marker (will be animated)
-        caregiverMarker.current = new mapboxgl.Marker({ color: '#FF775A' })
-          .setLngLat([caregiverPosition.lng, caregiverPosition.lat])
-          .addTo(map.current)
-          .setPopup(new mapboxgl.Popup().setHTML('<p class="font-medium">Your Caregiver</p>'));
-        
-        // Add route line between points
-        map.current.addSource('route', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: [
-                [caregiverPosition.lng, caregiverPosition.lat],
-                [destination.lng, destination.lat]
-              ]
-            }
-          }
-        });
-        
-        map.current.addLayer({
-          id: 'route',
-          type: 'line',
-          source: 'route',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          paint: {
-            'line-color': '#5C69D1',
-            'line-width': 4,
-            'line-opacity': 0.7
-          }
-        });
-        
-        setLoading(false);
+      // Add the route line layer
+      map.current.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#5C69D1',
+          'line-width': 4,
+          'line-opacity': 0.7,
+          'line-dasharray': [1, 1]
+        }
       });
     };
     
-    initializeMap();
-    
-    // Simulate caregiver movement for demo
+    // Simulate caregiver movement
     let intervalId: NodeJS.Timeout;
     
     const startCaregiverMovement = () => {
       if (!map.current || !caregiverMarker.current) return;
       
-      // Simple linear interpolation between caregiver and destination
+      // Linear interpolation between caregiver and destination
       const steps = 100;
       let currentStep = 0;
       
@@ -115,6 +137,7 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
           const newLng = caregiverPosition.lng + deltaLng * currentStep;
           const newLat = caregiverPosition.lat + deltaLat * currentStep;
           
+          // Update caregiver marker position
           if (caregiverMarker.current) {
             caregiverMarker.current.setLngLat([newLng, newLat]);
           }
@@ -133,8 +156,24 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
               }
             });
           }
+          
+          // Follow the caregiver movement by updating the map center
+          if (currentStep % 5 === 0 && map.current) {
+            map.current.easeTo({
+              center: [newLng, newLat],
+              duration: 1000
+            });
+          }
         } else {
           clearInterval(intervalId);
+          
+          // Caregiver has arrived - show a popup
+          if (map.current && caregiverMarker.current) {
+            new mapboxgl.Popup({ closeButton: false })
+              .setLngLat([destination.lng, destination.lat])
+              .setHTML('<p class="font-medium text-green-600">Caregiver has arrived!</p>')
+              .addTo(map.current);
+          }
         }
       }, 300);
     };

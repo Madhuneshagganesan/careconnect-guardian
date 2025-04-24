@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -10,75 +10,107 @@ import {
   ArrowRight, ArrowLeft, Edit, AlertCircle 
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { format, addDays } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 const BookService = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedService, setSelectedService] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'EEE, dd MMM'));
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedDuration, setSelectedDuration] = useState('');
   const [selectedCaregiverId, setSelectedCaregiverId] = useState<number | null>(null);
   const [isAddressEditing, setIsAddressEditing] = useState(false);
   const [address, setAddress] = useState('123 Main Street, Bangalore');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('upi');
+  const [servicePrice, setServicePrice] = useState(0);
+  const [totalPrice, setTotalPrice] = useState(0);
+  
+  // Get today's date and the next 6 days
+  const generateDates = () => {
+    const today = new Date();
+    const dates = [];
+    
+    for(let i = 0; i < 7; i++) {
+      const date = addDays(today, i);
+      let label = '';
+      
+      if (i === 0) label = 'Today';
+      else if (i === 1) label = 'Tomorrow';
+      else label = format(date, 'EEE, dd MMM');
+      
+      dates.push({
+        value: format(date, 'yyyy-MM-dd'),
+        label: label,
+        date: date
+      });
+    }
+    
+    return dates;
+  };
+  
+  const dates = generateDates();
   
   const services = [
     {
       id: 'meal-preparation',
       title: 'Meal Preparation',
       description: 'Assistance with cooking and preparing nutritious meals',
-      price: '₹300/hour'
+      price: 300
     },
     {
       id: 'personal-care',
       title: 'Personal Care',
       description: 'Help with bathing, dressing, and personal hygiene',
-      price: '₹350/hour'
+      price: 350
     },
     {
       id: 'medical-assistance',
       title: 'Medical Assistance',
       description: 'Medication reminders and basic medical support',
-      price: '₹400/hour'
+      price: 400
     },
     {
       id: 'household-help',
       title: 'Household Help',
       description: 'Light housekeeping, laundry, and organization',
-      price: '₹280/hour'
+      price: 280
     },
     {
       id: 'errands',
       title: 'Errands & Shopping',
       description: 'Grocery shopping, prescription pickups, and more',
-      price: '₹320/hour'
+      price: 320
     },
     {
       id: 'companionship',
       title: 'Companionship',
       description: 'Social engagement, conversation, and activities',
-      price: '₹250/hour'
+      price: 250
     }
   ];
   
   const durations = [
-    { id: '1hour', label: '1 hour', price: '+₹0' },
-    { id: '2hours', label: '2 hours', price: '+₹600' },
-    { id: '4hours', label: '4 hours (Half day)', price: '+₹1200' },
-    { id: '8hours', label: '8 hours (Full day)', price: '+₹2400' }
+    { id: '1hour', label: '1 hour', hours: 1, price: 0 },
+    { id: '2hours', label: '2 hours', hours: 2, price: 600 },
+    { id: '4hours', label: '4 hours (Half day)', hours: 4, price: 1200 },
+    { id: '8hours', label: '8 hours (Full day)', hours: 8, price: 2400 }
   ];
   
-  const times = [
-    '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
-    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'
-  ];
+  // Generate time slots from 9 AM to 5 PM
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 9; hour <= 17; hour++) {
+      const isPM = hour >= 12;
+      const displayHour = hour > 12 ? hour - 12 : hour;
+      const time = `${displayHour}:00 ${isPM ? 'PM' : 'AM'}`;
+      slots.push(time);
+    }
+    return slots;
+  };
   
-  const dates = [
-    'Today', 'Tomorrow', 'Wed, 15 Nov', 'Thu, 16 Nov', 
-    'Fri, 17 Nov', 'Sat, 18 Nov', 'Sun, 19 Nov'
-  ];
+  const times = generateTimeSlots();
   
   const caregivers = [
     {
@@ -106,6 +138,25 @@ const BookService = () => {
       imageUrl: ''
     }
   ];
+
+  // Calculate total price whenever service or duration changes
+  useEffect(() => {
+    if (!selectedService || !selectedDuration) {
+      setTotalPrice(0);
+      return;
+    }
+    
+    const selectedServiceObj = services.find(s => s.id === selectedService);
+    const selectedDurationObj = durations.find(d => d.id === selectedDuration);
+    
+    if (selectedServiceObj && selectedDurationObj) {
+      const basePrice = selectedServiceObj.price;
+      setServicePrice(basePrice);
+      const durationPrice = selectedDurationObj.price;
+      const convenienceFee = 99;
+      setTotalPrice(basePrice + durationPrice + convenienceFee);
+    }
+  }, [selectedService, selectedDuration]);
   
   const handleNext = () => {
     if (currentStep < 4) {
@@ -130,27 +181,67 @@ const BookService = () => {
     });
   };
 
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    const selectedServiceObj = services.find(s => s.id === selectedService);
+    const selectedDurationObj = durations.find(d => d.id === selectedDuration);
+    const selectedCaregiverObj = selectedCaregiverId === 0 ? 
+      { name: "Best available match" } : 
+      caregivers.find(c => c.id === selectedCaregiverId);
+    
+    try {
+      // In a real app, you would store this to Supabase or another backend
+      // For now, we'll just store in localStorage to simulate it
+      const bookingData = {
+        id: Date.now().toString(),
+        service: selectedServiceObj?.title || 'Unknown service',
+        date: selectedDate,
+        time: selectedTime,
+        duration: selectedDurationObj?.label || 'Unknown duration',
+        caregiver: selectedCaregiverObj?.name || 'Unknown caregiver',
+        caregiverId: selectedCaregiverId,
+        address: address,
+        totalPrice: totalPrice,
+        status: 'booked'
+      };
+      
+      // Store the booking data in localStorage
+      const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+      localStorage.setItem('bookings', JSON.stringify([...existingBookings, bookingData]));
+      
+      // Store the selected caregiver for tracking
+      localStorage.setItem('selectedCaregiverId', selectedCaregiverId?.toString() || '');
+      
       toast({
         title: "Booking Confirmed!",
-        description: "Your service has been booked successfully. Check your profile for details.",
+        description: `Your ${selectedServiceObj?.title} service has been booked successfully with ${selectedCaregiverObj?.name} for ${selectedDate} at ${selectedTime}.`,
       });
       
       // Redirect to profile page after booking
-      navigate('/profile');
-    }, 1500);
+      setTimeout(() => {
+        navigate('/profile');
+      }, 1500);
+    } catch (error) {
+      console.error("Error saving booking:", error);
+      toast({
+        title: "Booking Failed",
+        description: "There was an error processing your booking. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSaveForLater = () => {
+    const selectedServiceObj = services.find(s => s.id === selectedService);
+    
     toast({
       title: "Booking Saved",
-      description: "Your booking has been saved for later. You can access it from your profile.",
+      description: `Your ${selectedServiceObj?.title} booking has been saved for later. You can access it from your profile.`,
     });
+    
     navigate('/profile');
   };
   
@@ -178,7 +269,7 @@ const BookService = () => {
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">{service.description}</p>
-                  <p className="text-sm font-medium">{service.price}</p>
+                  <p className="text-sm font-medium">₹{service.price}/hour</p>
                 </div>
               ))}
             </div>
@@ -197,13 +288,13 @@ const BookService = () => {
                   <div
                     key={index}
                     className={`border rounded-lg p-3 text-center cursor-pointer transition-all ${
-                      selectedDate === date
+                      selectedDate === date.label
                         ? 'border-guardian-500 bg-guardian-50 text-guardian-700'
                         : 'border-border hover:border-guardian-200'
                     }`}
-                    onClick={() => setSelectedDate(date)}
+                    onClick={() => setSelectedDate(date.label)}
                   >
-                    <p className={`text-sm ${selectedDate === date ? 'font-medium' : ''}`}>{date}</p>
+                    <p className={`text-sm ${selectedDate === date.label ? 'font-medium' : ''}`}>{date.label}</p>
                   </div>
                 ))}
               </div>
@@ -245,7 +336,9 @@ const BookService = () => {
                       <p className={`text-sm ${selectedDuration === duration.id ? 'font-medium' : ''}`}>
                         {duration.label}
                       </p>
-                      <p className="text-sm text-muted-foreground">{duration.price}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {duration.price > 0 ? `+₹${duration.price}` : '+₹0'}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -334,6 +427,12 @@ const BookService = () => {
         );
       
       case 4:
+        const selectedServiceObj = services.find(s => s.id === selectedService);
+        const selectedDurationObj = durations.find(d => d.id === selectedDuration);
+        const selectedCaregiverObj = selectedCaregiverId === 0 
+          ? { name: "Best available match" } 
+          : caregivers.find(c => c.id === selectedCaregiverId);
+          
         return (
           <div className="animate-fade-in">
             <h2 className="text-2xl font-bold mb-6">Review & Confirm</h2>
@@ -349,7 +448,7 @@ const BookService = () => {
                   <div>
                     <p className="font-medium">Service Type</p>
                     <p className="text-muted-foreground">
-                      {services.find(s => s.id === selectedService)?.title || 'Not selected'}
+                      {selectedServiceObj?.title || 'Not selected'}
                     </p>
                   </div>
                 </div>
@@ -373,7 +472,7 @@ const BookService = () => {
                   <div>
                     <p className="font-medium">Duration</p>
                     <p className="text-muted-foreground">
-                      {durations.find(d => d.id === selectedDuration)?.label || 'Not selected'}
+                      {selectedDurationObj?.label || 'Not selected'}
                     </p>
                   </div>
                 </div>
@@ -425,9 +524,7 @@ const BookService = () => {
                   <div>
                     <p className="font-medium">Caregiver</p>
                     <p className="text-muted-foreground">
-                      {selectedCaregiverId === 0 
-                        ? 'Best available match' 
-                        : caregivers.find(c => c.id === selectedCaregiverId)?.name || 'Not selected'}
+                      {selectedCaregiverObj?.name || 'Not selected'}
                     </p>
                   </div>
                 </div>
@@ -440,11 +537,11 @@ const BookService = () => {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
                   <p className="text-muted-foreground">Service fee</p>
-                  <p>₹350</p>
+                  <p>₹{servicePrice}</p>
                 </div>
                 <div className="flex justify-between">
-                  <p className="text-muted-foreground">Duration ({durations.find(d => d.id === selectedDuration)?.label})</p>
-                  <p>₹1,400</p>
+                  <p className="text-muted-foreground">Duration ({selectedDurationObj?.label})</p>
+                  <p>₹{selectedDurationObj?.price || 0}</p>
                 </div>
                 <div className="flex justify-between">
                   <p className="text-muted-foreground">Convenience fee</p>
@@ -454,55 +551,22 @@ const BookService = () => {
               
               <div className="space-y-4 mb-4">
                 <h4 className="font-medium">Payment Method</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div 
-                    className={`border rounded-lg p-3 flex items-center cursor-pointer ${paymentMethod === 'upi' ? 'border-guardian-500 bg-guardian-50' : ''}`}
-                    onClick={() => setPaymentMethod('upi')}
-                  >
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-primary font-bold text-xs">UPI</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">UPI</p>
-                      <p className="text-xs text-muted-foreground">Pay directly from your bank</p>
-                    </div>
-                    {paymentMethod === 'upi' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
+                <div className="border rounded-lg p-3 flex items-center bg-guardian-50 border-guardian-500">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-primary font-bold text-xs">₹</span>
                   </div>
-                  
-                  <div 
-                    className={`border rounded-lg p-3 flex items-center cursor-pointer ${paymentMethod === 'card' ? 'border-guardian-500 bg-guardian-50' : ''}`}
-                    onClick={() => setPaymentMethod('card')}
-                  >
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-primary font-bold text-xs">CC</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Credit Card</p>
-                      <p className="text-xs text-muted-foreground">All major cards accepted</p>
-                    </div>
-                    {paymentMethod === 'card' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
+                  <div>
+                    <p className="text-sm font-medium">Cash on Delivery</p>
+                    <p className="text-xs text-muted-foreground">Pay after service completion</p>
                   </div>
-                  
-                  <div 
-                    className={`border rounded-lg p-3 flex items-center cursor-pointer ${paymentMethod === 'cash' ? 'border-guardian-500 bg-guardian-50' : ''}`}
-                    onClick={() => setPaymentMethod('cash')}
-                  >
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-primary font-bold text-xs">₹</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Cash</p>
-                      <p className="text-xs text-muted-foreground">Pay after service</p>
-                    </div>
-                    {paymentMethod === 'cash' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
-                  </div>
+                  <CheckCircle size={16} className="text-guardian-500 ml-auto" />
                 </div>
               </div>
               
               <div className="border-t border-border pt-3">
                 <div className="flex justify-between font-medium">
                   <p>Total</p>
-                  <p>₹1,849</p>
+                  <p>₹{totalPrice}</p>
                 </div>
               </div>
             </AnimatedCard>

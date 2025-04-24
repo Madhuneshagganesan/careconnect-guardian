@@ -10,6 +10,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from '@/components/ui/use-toast';
+import LiveTrackingMap from './LiveTrackingMap';
 
 interface Caregiver {
   id: string;
@@ -26,47 +27,72 @@ interface Caregiver {
 // Mock data for caregivers
 const mockCaregivers = [
   {
-    id: 'cg-123',
-    name: 'Sarah Johnson',
+    id: '1',
+    name: 'Priya Sharma',
     avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-    location: { lat: 37.7749, lng: -122.4194 },
+    location: { lat: 12.9716, lng: 77.5946 }, // Bangalore
     eta: 15,
     status: 'en-route' as const
   },
   {
-    id: 'cg-124',
-    name: 'Michael Rodriguez',
+    id: '2',
+    name: 'Rajesh Kumar',
     avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-    location: { lat: 37.7833, lng: -122.4167 },
+    location: { lat: 12.9799, lng: 77.5903 }, // Near Bangalore
     eta: 8,
     status: 'en-route' as const
   },
   {
-    id: 'cg-125',
-    name: 'Emily Chen',
+    id: '3',
+    name: 'Ananya Patel',
     avatar: 'https://randomuser.me/api/portraits/women/33.jpg',
-    location: { lat: 37.7951, lng: -122.4048 },
+    location: { lat: 12.9689, lng: 77.6093 }, // Also near Bangalore
     eta: 22,
     status: 'en-route' as const
   }
 ];
 
 const LiveTracking = () => {
-  // Get caregiver ID from session or URL parameter in a real app
-  const caregiverIdRef = useRef<string>(localStorage.getItem('selectedCaregiverId') || 'cg-124');
+  // Get bookings from localStorage
+  const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+  const latestBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null;
+  
+  // Get caregiver ID from booking or localStorage
+  const selectedCaregiverId = latestBooking?.caregiverId?.toString() || localStorage.getItem('selectedCaregiverId') || '1';
   
   const [caregiver, setCaregiver] = useState<Caregiver | null>(null);
   const [progress, setProgress] = useState(0);
   const [isMapOpen, setIsMapOpen] = useState(false);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
+  const [serviceDetails, setServiceDetails] = useState({
+    address: latestBooking?.address || '123 Main Street, Bangalore',
+    dateTime: latestBooking ? `${latestBooking.date}, ${latestBooking.time}` : 'Today, 3:00 PM',
+    duration: latestBooking?.duration || '2 hours',
+    payment: 'Cash on delivery',
+    service: latestBooking?.service || 'Personal Care',
+    price: latestBooking?.totalPrice || '₹1,849'
+  });
   
   // Simulate caregiver location updates
   useEffect(() => {
     // In a real app, this would use a WebSocket or polling to get real-time updates
-    const selectedCaregiver = mockCaregivers.find(cg => cg.id === caregiverIdRef.current) || mockCaregivers[0];
+    const selectedCaregiverObj = mockCaregivers.find(cg => cg.id === selectedCaregiverId);
     
-    setCaregiver(selectedCaregiver as Caregiver);
+    if (selectedCaregiverObj) {
+      setCaregiver({
+        ...selectedCaregiverObj,
+        id: selectedCaregiverId
+      });
+    } else if (selectedCaregiverId === '0') {
+      // "Best match" was selected, assign a random caregiver
+      const randomIndex = Math.floor(Math.random() * mockCaregivers.length);
+      setCaregiver({
+        ...mockCaregivers[randomIndex],
+        name: `${mockCaregivers[randomIndex].name} (Best Match)`,
+      });
+    } else {
+      // Fallback
+      setCaregiver(mockCaregivers[0]);
+    }
     
     // Simulate progress updates
     const interval = setInterval(() => {
@@ -75,6 +101,13 @@ const LiveTracking = () => {
           clearInterval(interval);
           // Update caregiver status when they arrive
           setCaregiver(c => c ? {...c, status: 'arrived' as const, eta: 0} : null);
+          
+          // Show arrival notification
+          toast({
+            title: "Caregiver has arrived!",
+            description: `Your caregiver ${selectedCaregiverObj?.name || 'has'} arrived at your location.`,
+          });
+          
           return 100;
         }
         return prev + 5;
@@ -82,49 +115,7 @@ const LiveTracking = () => {
     }, 3000);
     
     return () => clearInterval(interval);
-  }, []);
-  
-  // Initialize map when map container is visible
-  useEffect(() => {
-    if (isMapOpen && mapRef.current && caregiver && !mapInstanceRef.current) {
-      // Simulate map initialization
-      // In a real app, this would use a map library like Google Maps, Mapbox, etc.
-      const mockMapInit = () => {
-        const mapDiv = mapRef.current;
-        if (!mapDiv) return;
-        
-        // Create a mock map for demonstration purposes
-        const mapHTML = `
-          <div class="relative w-full h-full">
-            <div class="absolute inset-0 flex items-center justify-center bg-guardian-50 rounded-lg">
-              <div class="text-center">
-                <div class="w-10 h-10 bg-guardian-500 rounded-full flex items-center justify-center mx-auto mb-2 text-white">
-                  <MapPin size={20} />
-                </div>
-                <p class="font-medium text-guardian-700">Caregiver Location</p>
-                <p class="text-sm text-guardian-600">Lat: ${caregiver.location.lat.toFixed(4)}, Lng: ${caregiver.location.lng.toFixed(4)}</p>
-                <div class="mt-4 text-center">
-                  <p class="text-sm text-muted-foreground">This is a mock map for demonstration</p>
-                  <p class="text-sm text-muted-foreground">In a real app, this would show a real map with live tracking</p>
-                </div>
-              </div>
-            </div>
-            <div class="absolute bottom-4 right-4 z-10">
-              <div class="bg-white p-2 rounded-lg shadow-md">
-                <Button variant="outline" size="sm" class="h-8 w-8 p-0" title="Zoom In">+</Button>
-                <Button variant="outline" size="sm" class="h-8 w-8 p-0 mt-1" title="Zoom Out">-</Button>
-              </div>
-            </div>
-          </div>
-        `;
-        
-        mapDiv.innerHTML = mapHTML;
-        mapInstanceRef.current = true;
-      };
-      
-      mockMapInit();
-    }
-  }, [isMapOpen, caregiver]);
+  }, [selectedCaregiverId]);
   
   const contactCaregiver = (method: 'call' | 'message') => {
     if (method === 'call') {
@@ -136,6 +127,28 @@ const LiveTracking = () => {
       toast({
         title: "Message sent",
         description: `Your message has been sent to ${caregiver?.name}.`,
+      });
+    }
+  };
+  
+  const addToFavorites = () => {
+    if (!caregiver) return;
+    
+    // In a real app, this would be stored in a database
+    const favorites = JSON.parse(localStorage.getItem('favoriteCaregivers') || '[]');
+    
+    if (!favorites.includes(caregiver.id)) {
+      favorites.push(caregiver.id);
+      localStorage.setItem('favoriteCaregivers', JSON.stringify(favorites));
+      
+      toast({
+        title: "Added to Favorites",
+        description: `${caregiver.name} has been added to your favorite caregivers.`,
+      });
+    } else {
+      toast({
+        title: "Already in Favorites",
+        description: `${caregiver.name} is already in your favorites.`,
       });
     }
   };
@@ -160,6 +173,10 @@ const LiveTracking = () => {
           src={caregiver.avatar} 
           alt={caregiver.name}
           className="w-16 h-16 rounded-full border-2 border-primary" 
+          onError={(e) => {
+            // Fallback if image doesn't load
+            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64';
+          }}
         />
         <div>
           <h3 className="font-medium text-lg">{caregiver.name}</h3>
@@ -188,6 +205,16 @@ const LiveTracking = () => {
             onClick={() => contactCaregiver('message')}
           >
             <MessageSquare size={18} />
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-9 w-9 rounded-full"
+            onClick={addToFavorites}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+            </svg>
           </Button>
         </div>
       </div>
@@ -222,10 +249,10 @@ const LiveTracking = () => {
             <Collapsible
               open={isMapOpen}
               onOpenChange={setIsMapOpen}
-              className="w-full border rounded-lg overflow-hidden"
+              className="w-full"
             >
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="flex w-full justify-between p-4 h-auto">
+                <Button variant="ghost" className="flex w-full justify-between p-4 h-auto border rounded-lg">
                   <span>View Map</span>
                   {isMapOpen ? (
                     <ChevronUp className="h-4 w-4" />
@@ -235,7 +262,12 @@ const LiveTracking = () => {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div ref={mapRef} className="h-[250px] w-full" />
+                <div className="mt-2">
+                  <LiveTrackingMap 
+                    caregiverPosition={{ lng: caregiver.location.lng, lat: caregiver.location.lat }}
+                    destination={{ lng: 77.5946, lat: 12.9716 }} // Bangalore coordinates 
+                  />
+                </div>
               </CollapsibleContent>
             </Collapsible>
           </>
@@ -258,16 +290,26 @@ const LiveTracking = () => {
           <h4 className="font-medium mb-2">Service Details</h4>
           <div className="space-y-2 text-sm">
             <div className="flex">
-              <MapPin size={16} className="mr-2 text-muted-foreground" />
-              <span>123 Main Street, San Francisco, CA</span>
+              <MapPin size={16} className="mr-2 text-muted-foreground flex-shrink-0" />
+              <span>{serviceDetails.address}</span>
             </div>
             <div className="flex">
-              <Clock size={16} className="mr-2 text-muted-foreground" />
-              <span>Today, 3:00 PM - 5:00 PM</span>
+              <Clock size={16} className="mr-2 text-muted-foreground flex-shrink-0" />
+              <span>{serviceDetails.dateTime} ({serviceDetails.duration})</span>
             </div>
             <div className="mt-4">
-              <p className="font-medium">Payment Method</p>
-              <p className="text-sm text-muted-foreground">Cash on delivery</p>
+              <p className="font-medium">Service</p>
+              <p className="text-sm text-muted-foreground">{serviceDetails.service}</p>
+            </div>
+            <div className="flex justify-between">
+              <div>
+                <p className="font-medium">Payment Method</p>
+                <p className="text-sm text-muted-foreground">{serviceDetails.payment}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-medium">Total</p>
+                <p className="text-sm">{serviceDetails.price}</p>
+              </div>
             </div>
           </div>
         </div>
