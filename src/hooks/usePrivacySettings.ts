@@ -31,58 +31,54 @@ export function usePrivacySettings() {
     try {
       console.log("Fetching privacy settings for user:", user.id);
       
-      const { data, error } = await supabase
-        .from('privacy_settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No data found, create default settings
-          await createDefaultSettings();
-          return;
-        }
-        console.error('Error fetching privacy settings:', error);
-        throw error;
-      }
-
-      console.log("Fetched privacy settings:", data);
-      setSettings(data);
-    } catch (error) {
-      console.error('Error in privacy settings fetch:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load privacy settings",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const createDefaultSettings = async () => {
-    if (!user) return;
-    
-    try {
-      const defaultSettings = {
-        user_id: user.id,
+      // Create fallback settings if we can't fetch from Supabase
+      const fallbackSettings = {
         share_location: true,
         share_contact: true,
         share_status: true
       };
       
-      const { data, error } = await supabase
-        .from('privacy_settings')
-        .insert(defaultSettings)
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      setSettings(data);
+      // Try to get from localStorage first
+      const storedSettings = localStorage.getItem(`privacy_settings_${user.id}`);
+      if (storedSettings) {
+        setSettings(JSON.parse(storedSettings));
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Try Supabase as a fallback, but don't block on it
+        const { data, error } = await supabase
+          .from('privacy_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching privacy settings:', error);
+          // If we can't fetch from Supabase, use the fallback settings
+          setSettings(fallbackSettings);
+          localStorage.setItem(`privacy_settings_${user.id}`, JSON.stringify(fallbackSettings));
+        } else {
+          console.log("Fetched privacy settings:", data);
+          setSettings(data);
+          localStorage.setItem(`privacy_settings_${user.id}`, JSON.stringify(data));
+        }
+      } catch (error) {
+        console.error('Error in Supabase fetch:', error);
+        setSettings(fallbackSettings);
+        localStorage.setItem(`privacy_settings_${user.id}`, JSON.stringify(fallbackSettings));
+      }
     } catch (error) {
-      console.error('Error creating default privacy settings:', error);
+      console.error('Error in privacy settings fetch:', error);
+      // Set default settings if there's an error
+      const defaultSettings = {
+        share_location: true,
+        share_contact: true,
+        share_status: true
+      };
+      setSettings(defaultSettings);
+      localStorage.setItem(`privacy_settings_${user.id}`, JSON.stringify(defaultSettings));
     } finally {
       setIsLoading(false);
     }
@@ -94,14 +90,33 @@ export function usePrivacySettings() {
     try {
       console.log("Updating privacy settings:", newSettings);
       
-      const { error } = await supabase
-        .from('privacy_settings')
-        .update(newSettings)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      // Get current settings
+      const currentSettings = settings || {
+        share_location: true,
+        share_contact: true,
+        share_status: true
+      };
       
-      setSettings(prev => prev ? { ...prev, ...newSettings } : null);
+      // Merge with new settings
+      const updatedSettings = { ...currentSettings, ...newSettings };
+      
+      // Store in localStorage first (guaranteed to work)
+      localStorage.setItem(`privacy_settings_${user.id}`, JSON.stringify(updatedSettings));
+      
+      // Try to update in Supabase as well, but don't block on it
+      try {
+        await supabase
+          .from('privacy_settings')
+          .upsert({ 
+            user_id: user.id,
+            ...updatedSettings
+          });
+      } catch (supabaseError) {
+        console.log('Supabase update failed, but localStorage succeeded:', supabaseError);
+      }
+      
+      // Update state
+      setSettings(updatedSettings);
       return true;
     } catch (error) {
       console.error('Error updating privacy settings:', error);

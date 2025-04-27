@@ -48,7 +48,7 @@ export function PrivacySettingsDialog() {
                 </span>
               </div>
               <Switch
-                checked={settings?.share_location ?? false}
+                checked={settings?.share_location ?? true}
                 onCheckedChange={handleToggle('share_location')}
               />
             </div>
@@ -60,7 +60,7 @@ export function PrivacySettingsDialog() {
                 </span>
               </div>
               <Switch
-                checked={settings?.share_contact ?? false}
+                checked={settings?.share_contact ?? true}
                 onCheckedChange={handleToggle('share_contact')}
               />
             </div>
@@ -72,7 +72,7 @@ export function PrivacySettingsDialog() {
                 </span>
               </div>
               <Switch
-                checked={settings?.share_status ?? false}
+                checked={settings?.share_status ?? true}
                 onCheckedChange={handleToggle('share_status')}
               />
             </div>
