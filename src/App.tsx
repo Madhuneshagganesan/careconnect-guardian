@@ -15,7 +15,7 @@ import SignUp from '@/pages/auth/SignUp';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
 import NotFound from '@/pages/NotFound';
 import Profile from '@/pages/Profile';
-import { AuthProvider } from '@/providers/AuthProvider';
+import { AuthProvider } from '@/providers/AuthProvider'; // Change to named import
 import { LiveTrackingProvider } from '@/providers/LiveTrackingProvider';
 
 function App() {
