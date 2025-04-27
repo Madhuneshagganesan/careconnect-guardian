@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +19,7 @@ import AuthProvider from "./providers/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
 import VoiceAssistant from "./components/voice/VoiceAssistant";
 import SOSButton from "./components/sos/SOSButton";
+import { LiveTrackingProvider } from './providers/LiveTrackingProvider';
 
 const queryClient = new QueryClient();
 
@@ -79,23 +79,27 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+function App() {
+  return (
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-          {/* Always show Voice Assistant regardless of auth status */}
-          <VoiceAssistant />
-          {/* Show SOS button only when authenticated */}
-          <SOSContent />
-        </BrowserRouter>
-      </TooltipProvider>
+      <LiveTrackingProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+              {/* Always show Voice Assistant regardless of auth status */}
+              <VoiceAssistant />
+              {/* Show SOS button only when authenticated */}
+              <SOSContent />
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </LiveTrackingProvider>
     </AuthProvider>
-  </QueryClientProvider>
-);
+  );
+}
 
 // Component to conditionally render SOS button
 const SOSContent = () => {

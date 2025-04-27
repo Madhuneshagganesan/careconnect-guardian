@@ -30,6 +30,75 @@ export type Database = {
         }
         Relationships: []
       }
+      live_tracking: {
+        Row: {
+          booking_id: string | null
+          caregiver_id: string
+          created_at: string | null
+          eta: number | null
+          id: string
+          last_updated: string | null
+          location_lat: number | null
+          location_lng: number | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          caregiver_id: string
+          created_at?: string | null
+          eta?: number | null
+          id?: string
+          last_updated?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          caregiver_id?: string
+          created_at?: string | null
+          eta?: number | null
+          id?: string
+          last_updated?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      privacy_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          share_contact: boolean | null
+          share_location: boolean | null
+          share_status: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          share_contact?: boolean | null
+          share_location?: boolean | null
+          share_status?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          share_contact?: boolean | null
+          share_location?: boolean | null
+          share_status?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null

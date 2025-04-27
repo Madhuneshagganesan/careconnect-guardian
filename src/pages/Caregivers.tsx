@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -7,6 +6,10 @@ import Button from '@/components/ui/Button';
 import RequestCustomMatch from '@/components/forms/RequestCustomMatch';
 import { Link } from 'react-router-dom';
 import { Star, Filter, Search, MapPin, CheckCircle, Clock, Award } from 'lucide-react';
+import { PrivacySettingsDialog } from '@/components/settings/PrivacySettingsDialog';
+import { useFavoriteCaregivers } from '@/hooks/useFavoriteCaregivers';
+import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const Caregivers = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -114,6 +117,9 @@ const Caregivers = () => {
     { id: 'household', label: 'Household Help' }
   ];
   
+  const { favorites, toggleFavorite } = useFavoriteCaregivers();
+  const { user } = useAuth();
+
   const filteredCaregivers = caregivers.filter(caregiver => {
     const matchesSearch = caregiver.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          caregiver.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,6 +135,22 @@ const Caregivers = () => {
     return matchesSearch;
   });
 
+  const handleFavoriteToggle = async (caregiverId: string, name: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to save favorites",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await toggleFavorite(caregiverId);
+    toast({
+      description: `${name} ${favorites.includes(caregiverId) ? 'removed from' : 'added to'} favorites`,
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -138,10 +160,10 @@ const Caregivers = () => {
         <section className="bg-guardian-50 py-12">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">Find Your Perfect Caregiver</h1>
-              <p className="text-lg text-muted-foreground mb-8">
-                Browse through our network of verified caregivers, each specializing in different aspects of care
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-3xl md:text-4xl font-bold">Find Your Perfect Caregiver</h1>
+                <PrivacySettingsDialog />
+              </div>
               
               {/* Search and Filter */}
               <div className="bg-white rounded-xl shadow-sm border border-border p-4 mb-6">
