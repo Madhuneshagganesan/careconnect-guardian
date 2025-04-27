@@ -135,7 +135,7 @@ const Caregivers = () => {
     return matchesSearch;
   });
 
-  const handleFavoriteToggle = async (caregiverId: string, name: string) => {
+  const handleFavoriteToggle = async (caregiverId: number, name: string) => {
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -145,9 +145,9 @@ const Caregivers = () => {
       return;
     }
 
-    await toggleFavorite(caregiverId);
+    await toggleFavorite(caregiverId.toString());
     toast({
-      description: `${name} ${favorites.includes(caregiverId) ? 'removed from' : 'added to'} favorites`,
+      description: `${name} ${favorites.includes(caregiverId.toString()) ? 'removed from' : 'added to'} favorites`,
     });
   };
 
@@ -307,16 +307,18 @@ const Caregivers = () => {
                     </div>
                     
                     <div className="mt-auto pt-4 grid grid-cols-2 gap-3">
-                      <Link to={`/caregivers/${caregiver.id}`}>
-                        <Button variant="secondary" fullWidth>
-                          View Profile
-                        </Button>
-                      </Link>
-                      <Link to={`/book-service?caregiver=${caregiver.id}`}>
-                        <Button variant="primary" fullWidth>
-                          Book Now
-                        </Button>
-                      </Link>
+                      <Button 
+                        variant="secondary" 
+                        to={`/caregiver-detail/${caregiver.id}`}
+                      >
+                        View Profile
+                      </Button>
+                      <Button 
+                        variant="primary"
+                        to={`/book-service?caregiver=${caregiver.id}`}
+                      >
+                        Book Now
+                      </Button>
                     </div>
                   </div>
                 </AnimatedCard>

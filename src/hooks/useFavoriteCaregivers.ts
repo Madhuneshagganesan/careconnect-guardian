@@ -13,7 +13,11 @@ export function useFavoriteCaregivers() {
     if (user) {
       fetchFavorites();
     } else {
-      setFavorites([]);
+      // Use local storage for non-authenticated users
+      const storedFavorites = localStorage.getItem('favorites');
+      if (storedFavorites) {
+        setFavorites(JSON.parse(storedFavorites));
+      }
       setIsLoading(false);
     }
   }, [user]);
@@ -38,50 +42,66 @@ export function useFavoriteCaregivers() {
       const favoriteIds = data.map(f => f.caregiver_id);
       console.log("Fetched favorite caregivers:", favoriteIds);
       setFavorites(favoriteIds);
+      
+      // Also store in localStorage as fallback
+      localStorage.setItem('favorites', JSON.stringify(favoriteIds));
     } catch (error) {
       console.error('Error in favorite caregivers fetch:', error);
+      
+      // Try to load from localStorage as fallback
+      const storedFavorites = localStorage.getItem('favorites');
+      if (storedFavorites) {
+        setFavorites(JSON.parse(storedFavorites));
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const toggleFavorite = async (caregiverId: string) => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to save favorites",
-      });
-      return;
-    }
-
     try {
       const isFavorite = favorites.includes(caregiverId);
+      let newFavorites: string[];
       
-      if (isFavorite) {
-        console.log("Removing from favorites:", caregiverId);
-        
-        await supabase
-          .from('favorite_caregivers')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('caregiver_id', caregiverId);
-        
-        setFavorites(prev => prev.filter(id => id !== caregiverId));
-        toast({
-          description: "Removed from favorites",
-        });
+      if (user) {
+        if (isFavorite) {
+          console.log("Removing from favorites:", caregiverId);
+          
+          await supabase
+            .from('favorite_caregivers')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('caregiver_id', caregiverId);
+          
+          newFavorites = favorites.filter(id => id !== caregiverId);
+        } else {
+          console.log("Adding to favorites:", caregiverId);
+          
+          await supabase
+            .from('favorite_caregivers')
+            .insert({ user_id: user.id, caregiver_id: caregiverId });
+          
+          newFavorites = [...favorites, caregiverId];
+        }
       } else {
-        console.log("Adding to favorites:", caregiverId);
-        
-        await supabase
-          .from('favorite_caregivers')
-          .insert({ user_id: user.id, caregiver_id: caregiverId });
-        
-        setFavorites(prev => [...prev, caregiverId]);
-        toast({
-          description: "Added to favorites",
-        });
+        // Handle non-authenticated users via localStorage
+        if (isFavorite) {
+          newFavorites = favorites.filter(id => id !== caregiverId);
+          toast({
+            description: "Removed from favorites",
+          });
+        } else {
+          newFavorites = [...favorites, caregiverId];
+          toast({
+            description: "Added to favorites",
+          });
+        }
       }
+      
+      setFavorites(newFavorites);
+      localStorage.setItem('favorites', JSON.stringify(newFavorites));
+      
+      return Promise.resolve();
     } catch (error) {
       console.error('Error toggling favorite:', error);
       toast({
@@ -89,6 +109,7 @@ export function useFavoriteCaregivers() {
         description: "Failed to update favorites",
         variant: "destructive",
       });
+      return Promise.reject(error);
     }
   };
 

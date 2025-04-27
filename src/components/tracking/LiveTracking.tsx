@@ -65,6 +65,7 @@ const LiveTracking = () => {
   const [caregiver, setCaregiver] = useState<Caregiver | null>(null);
   const [progress, setProgress] = useState(0);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [serviceDetails, setServiceDetails] = useState({
     address: latestBooking?.address || '123 Main Street, Bangalore',
     dateTime: latestBooking ? `${latestBooking.date}, ${latestBooking.time}` : 'Today, 3:00 PM',
@@ -73,6 +74,9 @@ const LiveTracking = () => {
     service: latestBooking?.service || 'Personal Care',
     price: latestBooking?.totalPrice || '₹1,849'
   });
+
+  const mapToken = 'pk.eyJ1IjoibG92YWJsZS1ndWFyZGlhbiIsImEiOiJjbHg0bDZkZ2cwZTZrMmtwYnkyd215YXQ0In0.5AGnzQkV1TFjZ4dkPUqoaA';
+  localStorage.setItem('mapbox_token', mapToken); // Store token for map component
   
   // Simulate caregiver location updates
   useEffect(() => {
@@ -96,6 +100,17 @@ const LiveTracking = () => {
       setCaregiver(mockCaregivers[0]);
     }
     
+    // Show a notification when caregiver is assigned
+    if (selectedCaregiverObj && !localStorage.getItem('notified_assignment_' + selectedCaregiverId)) {
+      setTimeout(() => {
+        toast({
+          title: "Caregiver Assigned",
+          description: `${selectedCaregiverObj.name} has been assigned to your service`,
+        });
+        localStorage.setItem('notified_assignment_' + selectedCaregiverId, 'true');
+      }, 1000);
+    }
+    
     // Simulate progress updates
     const interval = setInterval(() => {
       setProgress(prev => {
@@ -105,24 +120,19 @@ const LiveTracking = () => {
           setCaregiver(c => c ? {...c, status: 'arrived' as const, eta: 0} : null);
           
           // Show arrival notification
-          toast({
-            title: "Caregiver has arrived!",
-            description: `Your caregiver ${selectedCaregiverObj?.name || 'has'} arrived at your location.`,
-          });
+          if (!localStorage.getItem('notified_arrival_' + selectedCaregiverId)) {
+            toast({
+              title: "Caregiver has arrived!",
+              description: `${selectedCaregiverObj?.name || 'Your caregiver'} has arrived at your location.`,
+            });
+            localStorage.setItem('notified_arrival_' + selectedCaregiverId, 'true');
+          }
           
           return 100;
         }
         return prev + 5;
       });
     }, 3000);
-    
-    // Show a notification when caregiver is assigned
-    if (caregiver) {
-      toast({
-        title: "Caregiver Assigned",
-        description: `${caregiver.name} has been assigned to your service`,
-      });
-    }
 
     return () => clearInterval(interval);
   }, [selectedCaregiverId]);
@@ -258,11 +268,14 @@ const LiveTracking = () => {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="mt-2">
-                  <LiveTrackingMap 
-                    caregiverPosition={{ lng: caregiver.location.lng, lat: caregiver.location.lat }}
-                    destination={{ lng: 77.5946, lat: 12.9716 }} // Bangalore coordinates 
-                  />
+                <div className="mt-2 relative">
+                  {isMapOpen && (
+                    <div className="w-full h-48 bg-slate-100 rounded relative overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <p className="text-sm text-muted-foreground">Map view available</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CollapsibleContent>
             </Collapsible>

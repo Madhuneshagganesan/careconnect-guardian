@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,12 +15,40 @@ import { toast } from '@/hooks/use-toast';
 
 export function PrivacySettingsDialog() {
   const { settings, updateSettings, isLoading } = usePrivacySettings();
+  const [localSettings, setLocalSettings] = useState({
+    share_location: true,
+    share_contact: true,
+    share_status: true
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setLocalSettings({
+        share_location: settings.share_location ?? true,
+        share_contact: settings.share_contact ?? true,
+        share_status: settings.share_status ?? true
+      });
+    }
+  }, [settings]);
 
   const handleToggle = (setting: string) => (checked: boolean) => {
+    const newSettings = { ...localSettings, [setting]: checked };
+    setLocalSettings(newSettings);
+    
+    // Save to localStorage immediately for better UX
+    localStorage.setItem('privacy_settings', JSON.stringify(newSettings));
+    
     updateSettings({ [setting]: checked })
       .then(() => {
         toast({
           description: `${setting.replace('_', ' ')} setting updated successfully`,
+        });
+      })
+      .catch(() => {
+        toast({
+          title: "Update failed",
+          description: "Settings saved locally but couldn't be synchronized",
+          variant: "destructive"
         });
       });
   };
@@ -48,7 +76,7 @@ export function PrivacySettingsDialog() {
                 </span>
               </div>
               <Switch
-                checked={settings?.share_location ?? true}
+                checked={localSettings.share_location}
                 onCheckedChange={handleToggle('share_location')}
               />
             </div>
@@ -60,7 +88,7 @@ export function PrivacySettingsDialog() {
                 </span>
               </div>
               <Switch
-                checked={settings?.share_contact ?? true}
+                checked={localSettings.share_contact}
                 onCheckedChange={handleToggle('share_contact')}
               />
             </div>
@@ -72,7 +100,7 @@ export function PrivacySettingsDialog() {
                 </span>
               </div>
               <Switch
-                checked={settings?.share_status ?? true}
+                checked={localSettings.share_status}
                 onCheckedChange={handleToggle('share_status')}
               />
             </div>
