@@ -16,21 +16,41 @@ export function usePrivacySettings() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setSettings(null);
+      setIsLoading(false);
+      return;
+    }
+    
     fetchSettings();
   }, [user]);
 
   const fetchSettings = async () => {
+    if (!user) return;
+    
     try {
+      console.log("Fetching privacy settings for user:", user.id);
+      
       const { data, error } = await supabase
         .from('privacy_settings')
         .select('*')
+        .eq('user_id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No data found, create default settings
+          await createDefaultSettings();
+          return;
+        }
+        console.error('Error fetching privacy settings:', error);
+        throw error;
+      }
+
+      console.log("Fetched privacy settings:", data);
       setSettings(data);
     } catch (error) {
-      console.error('Error fetching privacy settings:', error);
+      console.error('Error in privacy settings fetch:', error);
       toast({
         title: "Error",
         description: "Failed to load privacy settings",
@@ -41,10 +61,39 @@ export function usePrivacySettings() {
     }
   };
 
+  const createDefaultSettings = async () => {
+    if (!user) return;
+    
+    try {
+      const defaultSettings = {
+        user_id: user.id,
+        share_location: true,
+        share_contact: true,
+        share_status: true
+      };
+      
+      const { data, error } = await supabase
+        .from('privacy_settings')
+        .insert(defaultSettings)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      setSettings(data);
+    } catch (error) {
+      console.error('Error creating default privacy settings:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const updateSettings = async (newSettings: Partial<PrivacySettings>) => {
     if (!user) return;
 
     try {
+      console.log("Updating privacy settings:", newSettings);
+      
       const { error } = await supabase
         .from('privacy_settings')
         .update(newSettings)
@@ -53,9 +102,7 @@ export function usePrivacySettings() {
       if (error) throw error;
       
       setSettings(prev => prev ? { ...prev, ...newSettings } : null);
-      toast({
-        description: "Privacy settings updated successfully",
-      });
+      return true;
     } catch (error) {
       console.error('Error updating privacy settings:', error);
       toast({
@@ -63,6 +110,7 @@ export function usePrivacySettings() {
         description: "Failed to update privacy settings",
         variant: "destructive",
       });
+      return false;
     }
   };
 

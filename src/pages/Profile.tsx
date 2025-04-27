@@ -10,8 +10,9 @@ import {
   Heart, ChevronRight, ArrowRight, Star
 } from 'lucide-react';
 import LiveTracking from '@/components/tracking/LiveTracking';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { PrivacySettingsDialog } from '@/components/settings/PrivacySettingsDialog';
 
 const favoritesCaregivers = [
   {

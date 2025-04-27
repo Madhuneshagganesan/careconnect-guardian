@@ -12,20 +12,34 @@ export function useFavoriteCaregivers() {
   useEffect(() => {
     if (user) {
       fetchFavorites();
+    } else {
+      setFavorites([]);
+      setIsLoading(false);
     }
   }, [user]);
 
   const fetchFavorites = async () => {
+    if (!user) return;
+    
     try {
+      setIsLoading(true);
+      console.log("Fetching favorites for user:", user.id);
+      
       const { data, error } = await supabase
         .from('favorite_caregivers')
         .select('caregiver_id')
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
-      if (error) throw error;
-      setFavorites(data.map(f => f.caregiver_id));
+      if (error) {
+        console.error('Error fetching favorites:', error);
+        throw error;
+      }
+      
+      const favoriteIds = data.map(f => f.caregiver_id);
+      console.log("Fetched favorite caregivers:", favoriteIds);
+      setFavorites(favoriteIds);
     } catch (error) {
-      console.error('Error fetching favorites:', error);
+      console.error('Error in favorite caregivers fetch:', error);
     } finally {
       setIsLoading(false);
     }
@@ -44,6 +58,8 @@ export function useFavoriteCaregivers() {
       const isFavorite = favorites.includes(caregiverId);
       
       if (isFavorite) {
+        console.log("Removing from favorites:", caregiverId);
+        
         await supabase
           .from('favorite_caregivers')
           .delete()
@@ -55,6 +71,8 @@ export function useFavoriteCaregivers() {
           description: "Removed from favorites",
         });
       } else {
+        console.log("Adding to favorites:", caregiverId);
+        
         await supabase
           .from('favorite_caregivers')
           .insert({ user_id: user.id, caregiver_id: caregiverId });
