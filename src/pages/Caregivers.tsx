@@ -139,8 +139,10 @@ const Caregivers = () => {
   const handleFavoriteToggle = async (caregiverId: number, name: string) => {
     try {
       await toggleFavorite(caregiverId.toString());
+      
+      const isFavorite = favorites.includes(caregiverId.toString());
       toast({
-        description: `${name} ${favorites.includes(caregiverId.toString()) ? 'removed from' : 'added to'} favorites`,
+        description: `${name} ${isFavorite ? 'added to' : 'removed from'} favorites`,
       });
     } catch (error) {
       console.error("Error toggling favorite:", error);
@@ -308,12 +310,14 @@ const Caregivers = () => {
                     </div>
                     
                     <div className="mt-auto pt-4 grid grid-cols-2 gap-3">
-                      <Button 
-                        variant="secondary" 
-                        to={`/caregiver/${caregiver.id}`}
-                      >
-                        View Profile
-                      </Button>
+                      <Link to={`/caregiver/${caregiver.id}`} className="inline-block">
+                        <Button 
+                          variant="secondary"
+                          className="w-full" 
+                        >
+                          View Profile
+                        </Button>
+                      </Link>
                       <Button 
                         variant="primary"
                         onClick={() => handleFavoriteToggle(caregiver.id, caregiver.name)}

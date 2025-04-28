@@ -27,28 +27,23 @@ export function useFavoriteCaregivers() {
     
     try {
       setIsLoading(true);
-      console.log("Fetching favorites for user:", user.id);
       
-      const { data, error } = await supabase
-        .from('favorite_caregivers')
-        .select('caregiver_id')
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error fetching favorites:', error);
-        throw error;
+      // For local development/demo, use localStorage instead of Supabase
+      // This avoids UUID format issues with the mock user IDs
+      const storedFavorites = localStorage.getItem(`favorites_${user.id}`);
+      if (storedFavorites) {
+        const favoriteIds = JSON.parse(storedFavorites);
+        console.log("Fetched favorite caregivers from localStorage:", favoriteIds);
+        setFavorites(favoriteIds);
+      } else {
+        // Initialize empty favorites for this user
+        localStorage.setItem(`favorites_${user.id}`, JSON.stringify([]));
+        setFavorites([]);
       }
-      
-      const favoriteIds = data.map(f => f.caregiver_id);
-      console.log("Fetched favorite caregivers:", favoriteIds);
-      setFavorites(favoriteIds);
-      
-      // Also store in localStorage as fallback
-      localStorage.setItem('favorites', JSON.stringify(favoriteIds));
     } catch (error) {
       console.error('Error in favorite caregivers fetch:', error);
       
-      // Try to load from localStorage as fallback
+      // Fallback to general localStorage
       const storedFavorites = localStorage.getItem('favorites');
       if (storedFavorites) {
         setFavorites(JSON.parse(storedFavorites));
@@ -63,36 +58,22 @@ export function useFavoriteCaregivers() {
       const isFavorite = favorites.includes(caregiverId);
       let newFavorites: string[];
       
-      if (user) {
-        if (isFavorite) {
-          console.log("Removing from favorites:", caregiverId);
-          
-          await supabase
-            .from('favorite_caregivers')
-            .delete()
-            .eq('user_id', user.id)
-            .eq('caregiver_id', caregiverId);
-          
-          newFavorites = favorites.filter(id => id !== caregiverId);
-        } else {
-          console.log("Adding to favorites:", caregiverId);
-          
-          await supabase
-            .from('favorite_caregivers')
-            .insert({ user_id: user.id, caregiver_id: caregiverId });
-          
-          newFavorites = [...favorites, caregiverId];
-        }
+      if (isFavorite) {
+        console.log("Removing from favorites:", caregiverId);
+        newFavorites = favorites.filter(id => id !== caregiverId);
       } else {
-        // Handle non-authenticated users via localStorage
-        if (isFavorite) {
-          newFavorites = favorites.filter(id => id !== caregiverId);
-        } else {
-          newFavorites = [...favorites, caregiverId];
-        }
+        console.log("Adding to favorites:", caregiverId);
+        newFavorites = [...favorites, caregiverId];
       }
       
       setFavorites(newFavorites);
+      
+      // Store in user-specific localStorage key if authenticated
+      if (user) {
+        localStorage.setItem(`favorites_${user.id}`, JSON.stringify(newFavorites));
+      }
+      
+      // Also store in general localStorage as fallback
       localStorage.setItem('favorites', JSON.stringify(newFavorites));
       
       return Promise.resolve();
