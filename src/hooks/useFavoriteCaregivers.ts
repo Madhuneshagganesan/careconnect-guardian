@@ -87,14 +87,8 @@ export function useFavoriteCaregivers() {
         // Handle non-authenticated users via localStorage
         if (isFavorite) {
           newFavorites = favorites.filter(id => id !== caregiverId);
-          toast({
-            description: "Removed from favorites",
-          });
         } else {
           newFavorites = [...favorites, caregiverId];
-          toast({
-            description: "Added to favorites",
-          });
         }
       }
       
@@ -104,11 +98,6 @@ export function useFavoriteCaregivers() {
       return Promise.resolve();
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update favorites",
-        variant: "destructive",
-      });
       return Promise.reject(error);
     }
   };

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, Navigation, ChevronDown, ChevronUp, Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
 import { Card } from '@/components/ui/card';
@@ -64,8 +63,7 @@ const LiveTracking = () => {
   const { favorites, toggleFavorite } = useFavoriteCaregivers();
   const [caregiver, setCaregiver] = useState<Caregiver | null>(null);
   const [progress, setProgress] = useState(0);
-  const [isMapOpen, setIsMapOpen] = useState(false);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(true);
   const [serviceDetails, setServiceDetails] = useState({
     address: latestBooking?.address || '123 Main Street, Bangalore',
     dateTime: latestBooking ? `${latestBooking.date}, ${latestBooking.time}` : 'Today, 3:00 PM',
@@ -74,9 +72,6 @@ const LiveTracking = () => {
     service: latestBooking?.service || 'Personal Care',
     price: latestBooking?.totalPrice || '₹1,849'
   });
-
-  const mapToken = 'pk.eyJ1IjoibG92YWJsZS1ndWFyZGlhbiIsImEiOiJjbHg0bDZkZ2cwZTZrMmtwYnkyd215YXQ0In0.5AGnzQkV1TFjZ4dkPUqoaA';
-  localStorage.setItem('mapbox_token', mapToken); // Store token for map component
   
   // Simulate caregiver location updates
   useEffect(() => {
@@ -88,24 +83,41 @@ const LiveTracking = () => {
         ...selectedCaregiverObj,
         id: selectedCaregiverId
       });
+      
+      // Store caregiver info for notifications
+      localStorage.setItem('activeCaregiverName', selectedCaregiverObj.name);
+      localStorage.setItem('activeCaregiverStatus', selectedCaregiverObj.status);
+      localStorage.setItem('activeCaregiverETA', selectedCaregiverObj.eta.toString());
     } else if (selectedCaregiverId === '0') {
       // "Best match" was selected, assign a random caregiver
       const randomIndex = Math.floor(Math.random() * mockCaregivers.length);
+      const randomCaregiver = mockCaregivers[randomIndex];
       setCaregiver({
-        ...mockCaregivers[randomIndex],
-        name: `${mockCaregivers[randomIndex].name} (Best Match)`,
+        ...randomCaregiver,
+        name: `${randomCaregiver.name} (Best Match)`,
       });
+      
+      // Store caregiver info for notifications
+      localStorage.setItem('activeCaregiverName', `${randomCaregiver.name} (Best Match)`);
+      localStorage.setItem('activeCaregiverStatus', randomCaregiver.status);
+      localStorage.setItem('activeCaregiverETA', randomCaregiver.eta.toString());
     } else {
       // Fallback
       setCaregiver(mockCaregivers[0]);
+      
+      // Store caregiver info for notifications
+      localStorage.setItem('activeCaregiverName', mockCaregivers[0].name);
+      localStorage.setItem('activeCaregiverStatus', mockCaregivers[0].status);
+      localStorage.setItem('activeCaregiverETA', mockCaregivers[0].eta.toString());
     }
     
     // Show a notification when caregiver is assigned
-    if (selectedCaregiverObj && !localStorage.getItem('notified_assignment_' + selectedCaregiverId)) {
+    if (!localStorage.getItem('notified_assignment_' + selectedCaregiverId)) {
       setTimeout(() => {
+        const caregiverName = localStorage.getItem('activeCaregiverName') || 'Your caregiver';
         toast({
           title: "Caregiver Assigned",
-          description: `${selectedCaregiverObj.name} has been assigned to your service`,
+          description: `${caregiverName} has been assigned to your service`,
         });
         localStorage.setItem('notified_assignment_' + selectedCaregiverId, 'true');
       }, 1000);
@@ -117,19 +129,49 @@ const LiveTracking = () => {
         if (prev >= 100) {
           clearInterval(interval);
           // Update caregiver status when they arrive
-          setCaregiver(c => c ? {...c, status: 'arrived' as const, eta: 0} : null);
+          setCaregiver(c => {
+            if (c) {
+              const updatedCaregiver = {...c, status: 'arrived' as const, eta: 0};
+              
+              // Update stored status
+              localStorage.setItem('activeCaregiverStatus', 'arrived');
+              localStorage.setItem('activeCaregiverETA', '0');
+              
+              return updatedCaregiver;
+            }
+            return null;
+          });
           
           // Show arrival notification
           if (!localStorage.getItem('notified_arrival_' + selectedCaregiverId)) {
+            const caregiverName = localStorage.getItem('activeCaregiverName') || 'Your caregiver';
             toast({
               title: "Caregiver has arrived!",
-              description: `${selectedCaregiverObj?.name || 'Your caregiver'} has arrived at your location.`,
+              description: `${caregiverName} has arrived at your location.`,
             });
             localStorage.setItem('notified_arrival_' + selectedCaregiverId, 'true');
           }
           
           return 100;
         }
+        
+        // Update ETA as progress increases
+        if (caregiver && prev % 20 === 0) {
+          const newEta = Math.max(0, caregiver.eta - 5);
+          setCaregiver(c => c ? {...c, eta: newEta} : null);
+          localStorage.setItem('activeCaregiverETA', newEta.toString());
+          
+          // Show ETA update notification
+          if (newEta > 0 && !localStorage.getItem(`notified_eta_${selectedCaregiverId}_${newEta}`)) {
+            const caregiverName = localStorage.getItem('activeCaregiverName') || 'Your caregiver';
+            toast({
+              title: "ETA Updated",
+              description: `${caregiverName} will arrive in approximately ${newEta} minutes`,
+            });
+            localStorage.setItem(`notified_eta_${selectedCaregiverId}_${newEta}`, 'true');
+          }
+        }
+        
         return prev + 5;
       });
     }, 3000);
@@ -259,7 +301,7 @@ const LiveTracking = () => {
             >
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="flex w-full justify-between p-4 h-auto border rounded-lg">
-                  <span>View Map</span>
+                  <span>{isMapOpen ? 'Hide Map' : 'View Map'}</span>
                   {isMapOpen ? (
                     <ChevronUp className="h-4 w-4" />
                   ) : (
@@ -268,13 +310,18 @@ const LiveTracking = () => {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="mt-2 relative">
+                <div className="mt-2">
                   {isMapOpen && (
-                    <div className="w-full h-48 bg-slate-100 rounded relative overflow-hidden">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <p className="text-sm text-muted-foreground">Map view available</p>
-                      </div>
-                    </div>
+                    <LiveTrackingMap
+                      caregiverPosition={{ 
+                        lng: caregiver.location.lng, 
+                        lat: caregiver.location.lat 
+                      }}
+                      destination={{ 
+                        lng: caregiver.location.lng + 0.01, 
+                        lat: caregiver.location.lat + 0.01 
+                      }}
+                    />
                   )}
                 </div>
               </CollapsibleContent>

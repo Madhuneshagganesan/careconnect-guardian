@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import AnimatedCard from '@/components/ui/AnimatedCard';
 import Button from '@/components/ui/Button';
 import RequestCustomMatch from '@/components/forms/RequestCustomMatch';
 import { Link } from 'react-router-dom';
-import { Star, Filter, Search, MapPin, CheckCircle, Clock, Award } from 'lucide-react';
+import { Star, Filter, Search, MapPin, CheckCircle, Clock, Award, Heart } from 'lucide-react';
 import { PrivacySettingsDialog } from '@/components/settings/PrivacySettingsDialog';
 import { useFavoriteCaregivers } from '@/hooks/useFavoriteCaregivers';
 import { toast } from '@/hooks/use-toast';
@@ -136,19 +137,19 @@ const Caregivers = () => {
   });
 
   const handleFavoriteToggle = async (caregiverId: number, name: string) => {
-    if (!user) {
+    try {
+      await toggleFavorite(caregiverId.toString());
       toast({
-        title: "Authentication Required",
-        description: "Please log in to save favorites",
+        description: `${name} ${favorites.includes(caregiverId.toString()) ? 'removed from' : 'added to'} favorites`,
+      });
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update favorites",
         variant: "destructive",
       });
-      return;
     }
-
-    await toggleFavorite(caregiverId.toString());
-    toast({
-      description: `${name} ${favorites.includes(caregiverId.toString()) ? 'removed from' : 'added to'} favorites`,
-    });
   };
 
   return (
@@ -309,15 +310,20 @@ const Caregivers = () => {
                     <div className="mt-auto pt-4 grid grid-cols-2 gap-3">
                       <Button 
                         variant="secondary" 
-                        to={`/caregiver-detail/${caregiver.id}`}
+                        to={`/caregiver/${caregiver.id}`}
                       >
                         View Profile
                       </Button>
                       <Button 
                         variant="primary"
-                        to={`/book-service?caregiver=${caregiver.id}`}
+                        onClick={() => handleFavoriteToggle(caregiver.id, caregiver.name)}
                       >
-                        Book Now
+                        <Heart 
+                          size={16} 
+                          className="mr-1" 
+                          fill={favorites.includes(caregiver.id.toString()) ? "currentColor" : "none"} 
+                        />
+                        {favorites.includes(caregiver.id.toString()) ? 'Saved' : 'Save'}
                       </Button>
                     </div>
                   </div>
