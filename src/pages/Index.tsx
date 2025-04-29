@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -16,33 +15,33 @@ const Index = () => {
     {
       icon: <Shield size={24} />,
       title: 'Verified Caregivers',
-      description: 'Every caregiver undergoes a rigorous verification process for your safety'
+      description: 'Every caregiver undergoes a rigorous verification process for your safety',
     },
     {
       icon: <Clock size={24} />,
       title: 'Real-time Tracking',
-      description: 'Monitor the location and arrival time of your caregiver'
+      description: 'Monitor the location and arrival time of your caregiver',
     },
     {
       icon: <Star size={24} />,
       title: 'Quality Assurance',
-      description: 'Our rating system ensures continued high standards of service'
+      description: 'Our rating system ensures continued high standards of service',
     },
     {
       icon: <Headphones size={24} />,
       title: '24/7 Support',
-      description: 'Our team is always available to assist you with any queries'
-    }
+      description: 'Our team is always available to assist you with any queries',
+    },
   ];
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      
+
       <main className="flex-grow">
         <Hero />
         <ServiceCards />
-        
+
         {/* Why Choose Us */}
         <section className="py-16 md:py-24">
           <div className="container mx-auto px-4 sm:px-6">
@@ -52,11 +51,11 @@ const Index = () => {
                 We're committed to delivering care that's reliable, transparent, and tailored to individual needs
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className="flex flex-col items-center text-center p-6 rounded-xl border border-border bg-white shadow-sm animate-fade-in"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
@@ -70,11 +69,11 @@ const Index = () => {
             </div>
           </div>
         </section>
-        
+
         <CaregiversPreview />
         <HowItWorks />
         <TestimonialSlider />
-        
+
         {/* CTA Section */}
         <section className="py-16 md:py-24 bg-guardian-50">
           <div className="container mx-auto px-4 sm:px-6">
@@ -100,7 +99,7 @@ const Index = () => {
           </div>
         </section>
       </main>
-      
+
       <Footer />
     </div>
   );
