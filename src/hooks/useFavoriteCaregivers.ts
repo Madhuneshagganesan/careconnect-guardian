@@ -14,13 +14,13 @@ export function useFavoriteCaregivers() {
       setIsLoading(true);
       
       if (user) {
-        // For local development/demo, use localStorage instead of Supabase
-        // This avoids UUID format issues with the mock user IDs
+        // For local development/demo, use localStorage with user-specific key
         const storageKey = `favorites_${user.id}`;
         const storedFavorites = localStorage.getItem(storageKey);
+        
         if (storedFavorites) {
           const favoriteIds = JSON.parse(storedFavorites);
-          console.log("Fetched favorite caregivers from localStorage:", favoriteIds);
+          console.log("Fetched favorite caregivers from localStorage for user:", user.id, favoriteIds);
           setFavorites(favoriteIds);
         } else {
           // Initialize empty favorites for this user
@@ -28,20 +28,13 @@ export function useFavoriteCaregivers() {
           setFavorites([]);
         }
       } else {
-        // Use general localStorage for non-authenticated users
-        const storedFavorites = localStorage.getItem('favorites');
-        if (storedFavorites) {
-          setFavorites(JSON.parse(storedFavorites));
-        }
+        // Clear favorites when no user is logged in
+        setFavorites([]);
+        console.log("No user logged in, favorites cleared");
       }
     } catch (error) {
       console.error('Error in favorite caregivers fetch:', error);
-      
-      // Fallback to general localStorage
-      const storedFavorites = localStorage.getItem('favorites');
-      if (storedFavorites) {
-        setFavorites(JSON.parse(storedFavorites));
-      }
+      setFavorites([]);
     } finally {
       setIsLoading(false);
     }
@@ -53,26 +46,31 @@ export function useFavoriteCaregivers() {
 
   const toggleFavorite = async (caregiverId: string) => {
     try {
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to save favorites",
+          variant: "destructive",
+        });
+        return Promise.reject("User not authenticated");
+      }
+
       const isFavorite = favorites.includes(caregiverId);
       let newFavorites: string[];
       
       if (isFavorite) {
-        console.log("Removing from favorites:", caregiverId);
+        console.log("Removing from favorites for user", user.id, ":", caregiverId);
         newFavorites = favorites.filter(id => id !== caregiverId);
       } else {
-        console.log("Adding to favorites:", caregiverId);
+        console.log("Adding to favorites for user", user.id, ":", caregiverId);
         newFavorites = [...favorites, caregiverId];
       }
       
       setFavorites(newFavorites);
       
-      // Store in user-specific localStorage key if authenticated
-      if (user) {
-        localStorage.setItem(`favorites_${user.id}`, JSON.stringify(newFavorites));
-      }
-      
-      // Also store in general localStorage as fallback
-      localStorage.setItem('favorites', JSON.stringify(newFavorites));
+      // Store in user-specific localStorage key
+      const storageKey = `favorites_${user.id}`;
+      localStorage.setItem(storageKey, JSON.stringify(newFavorites));
       
       return Promise.resolve(!isFavorite); // Return whether it's now a favorite
     } catch (error) {

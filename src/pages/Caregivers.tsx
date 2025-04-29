@@ -137,11 +137,28 @@ const Caregivers = () => {
 
   const handleFavoriteToggle = async (caregiverId: number, name: string) => {
     try {
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to save favorites",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const isNowFavorite = await toggleFavorite(caregiverId.toString());
       
-      toast({
-        description: `${name} ${isNowFavorite ? 'added to' : 'removed from'} favorites`,
-      });
+      if (isNowFavorite) {
+        toast({
+          title: "Added to Favorites",
+          description: `${name} has been added to your favorites`,
+        });
+      } else {
+        toast({
+          title: "Removed from Favorites",
+          description: `${name} has been removed from your favorites`,
+        });
+      }
     } catch (error) {
       console.error("Error toggling favorite:", error);
       toast({
