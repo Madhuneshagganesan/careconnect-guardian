@@ -15,14 +15,20 @@ interface LiveTracking {
 
 interface LiveTrackingContextType {
   trackingData: LiveTracking | null;
+  isLoading: boolean;
+  error: string | null;
 }
 
 const LiveTrackingContext = createContext<LiveTrackingContextType>({
   trackingData: null,
+  isLoading: false,
+  error: null,
 });
 
 export const LiveTrackingProvider = ({ children }: { children: React.ReactNode }) => {
   const [trackingData, setTrackingData] = useState<LiveTracking | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { settings } = usePrivacySettings();
 
@@ -67,6 +73,8 @@ export const LiveTrackingProvider = ({ children }: { children: React.ReactNode }
 
     // Initial fetch of tracking data
     const fetchTrackingData = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const { data, error } = await supabase
           .from('live_tracking')
@@ -76,6 +84,8 @@ export const LiveTrackingProvider = ({ children }: { children: React.ReactNode }
 
         if (error) {
           console.error('Error fetching tracking data:', error);
+          setError('Failed to fetch tracking data. Using mock data instead.');
+          // We'll continue with mock data in the LiveTracking component
           return;
         }
 
@@ -84,6 +94,9 @@ export const LiveTrackingProvider = ({ children }: { children: React.ReactNode }
         }
       } catch (error) {
         console.error('Error in tracking data fetch:', error);
+        setError('Failed to fetch tracking data. Using mock data instead.');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -95,7 +108,7 @@ export const LiveTrackingProvider = ({ children }: { children: React.ReactNode }
   }, [user]);
 
   return (
-    <LiveTrackingContext.Provider value={{ trackingData }}>
+    <LiveTrackingContext.Provider value={{ trackingData, isLoading, error }}>
       {children}
     </LiveTrackingContext.Provider>
   );

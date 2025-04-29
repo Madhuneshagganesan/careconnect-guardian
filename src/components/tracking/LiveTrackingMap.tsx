@@ -3,9 +3,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/shadcn-button';
 
-// Mapbox token
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbDZ2MDZ6dDYwNnljM2JwZXRydXlvdnBnIn0.boA9CJ9_IWvrIWlYxzDdGg';
+// Initialize mapbox token as null
+const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbDZ2MDZ6dDYwNnljM2JwZXRydXlvdnBnIn0.boA9CJ9_IWvrIWlYxzDdGg';
 
 interface MapPosition {
   lng: number;
@@ -27,14 +28,26 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
   const destinationMarker = useRef<mapboxgl.Marker | null>(null);
   const [loading, setLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [mapboxToken, setMapboxToken] = useState<string>(() => {
+    // Try to get token from localStorage first
+    return localStorage.getItem('mapbox_token') || DEFAULT_MAPBOX_TOKEN;
+  });
   
-  useEffect(() => {
+  const initializeMap = () => {
     if (!mapContainer.current) return;
     
-    // Set mapbox token
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+    // Clean up existing map if any
+    if (map.current) {
+      map.current.remove();
+    }
+    
+    setLoading(true);
+    setMapError(null);
     
     try {
+      // Set mapbox token
+      mapboxgl.accessToken = mapboxToken;
+      
       // Initialize map
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -117,14 +130,18 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
       
       map.current.on('error', (e) => {
         console.error('Map error:', e);
-        setMapError('Failed to load map');
+        setMapError('Failed to load map. Please enter a valid Mapbox token below.');
         setLoading(false);
       });
     } catch (err) {
       console.error('Error initializing map:', err);
-      setMapError('Failed to initialize map');
+      setMapError('Failed to initialize map. Please enter a valid Mapbox token below.');
       setLoading(false);
     }
+  };
+  
+  useEffect(() => {
+    initializeMap();
     
     // Clean up on unmount
     return () => {
@@ -132,7 +149,19 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
         map.current.remove();
       }
     };
-  }, [caregiverPosition, destination]);
+  }, [caregiverPosition, destination, mapboxToken]);
+  
+  const handleTokenSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const tokenInput = e.currentTarget.elements.namedItem('mapboxToken') as HTMLInputElement;
+    const newToken = tokenInput.value.trim();
+    
+    if (newToken) {
+      // Save to localStorage
+      localStorage.setItem('mapbox_token', newToken);
+      setMapboxToken(newToken);
+    }
+  };
   
   return (
     <div className="relative w-full h-96 sm:h-[450px] rounded-lg overflow-hidden border border-border">
@@ -146,9 +175,24 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
       )}
       {mapError && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-          <div className="flex flex-col items-center">
-            <p className="text-red-500 font-medium">{mapError}</p>
-            <p className="text-sm text-muted-foreground mt-2">Please try refreshing the page</p>
+          <div className="flex flex-col items-center p-4 max-w-md">
+            <p className="text-red-500 font-medium text-center">{mapError}</p>
+            <p className="text-sm text-muted-foreground mt-2 text-center mb-4">
+              Please enter your Mapbox public token below
+            </p>
+            <form onSubmit={handleTokenSubmit} className="w-full space-y-2">
+              <input
+                type="text"
+                name="mapboxToken"
+                placeholder="Enter Mapbox token"
+                className="w-full p-2 border rounded text-sm"
+                defaultValue={mapboxToken !== DEFAULT_MAPBOX_TOKEN ? mapboxToken : ''}
+              />
+              <div className="text-xs text-muted-foreground text-center mb-2">
+                Get your token at <a href="https://mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">mapbox.com</a> (Account → Access tokens)
+              </div>
+              <Button type="submit" className="w-full">Apply Token</Button>
+            </form>
           </div>
         </div>
       )}
