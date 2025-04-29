@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Search, User, Bell, LogOut } from 'lucide-react';
@@ -41,7 +40,7 @@ const Navbar = () => {
     { name: 'Caregivers', path: '/caregivers' },
     { name: 'Services', path: '/services' },
     { name: 'How It Works', path: '/how-it-works' },
-    { name: 'About Us', path: '/about' },
+    { name: 'About Us', path: '/about-us' },  // Updated from '/about' to '/about-us'
   ];
   
   const mockNotifications = [
