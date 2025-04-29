@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -118,7 +117,7 @@ const Caregivers = () => {
     { id: 'household', label: 'Household Help' }
   ];
   
-  const { favorites, toggleFavorite } = useFavoriteCaregivers();
+  const { favorites, toggleFavorite, isFavorite } = useFavoriteCaregivers();
   const { user } = useAuth();
 
   const filteredCaregivers = caregivers.filter(caregiver => {
@@ -138,11 +137,10 @@ const Caregivers = () => {
 
   const handleFavoriteToggle = async (caregiverId: number, name: string) => {
     try {
-      await toggleFavorite(caregiverId.toString());
+      const isNowFavorite = await toggleFavorite(caregiverId.toString());
       
-      const isFavorite = favorites.includes(caregiverId.toString());
       toast({
-        description: `${name} ${isFavorite ? 'added to' : 'removed from'} favorites`,
+        description: `${name} ${isNowFavorite ? 'added to' : 'removed from'} favorites`,
       });
     } catch (error) {
       console.error("Error toggling favorite:", error);
@@ -325,9 +323,9 @@ const Caregivers = () => {
                         <Heart 
                           size={16} 
                           className="mr-1" 
-                          fill={favorites.includes(caregiver.id.toString()) ? "currentColor" : "none"} 
+                          fill={isFavorite(caregiver.id.toString()) ? "currentColor" : "none"} 
                         />
-                        {favorites.includes(caregiver.id.toString()) ? 'Saved' : 'Save'}
+                        {isFavorite(caregiver.id.toString()) ? 'Saved' : 'Save'}
                       </Button>
                     </div>
                   </div>

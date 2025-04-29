@@ -13,8 +13,19 @@ import LiveTracking from '@/components/tracking/LiveTracking';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { PrivacySettingsDialog } from '@/components/settings/PrivacySettingsDialog';
+import { useFavoriteCaregivers } from '@/hooks/useFavoriteCaregivers';
 
-const favoritesCaregivers = [
+// Define the caregiver type
+interface Caregiver {
+  id: number;
+  name: string;
+  specialty: string;
+  rating: number;
+  reviews: number;
+}
+
+// Mock data for caregivers
+const caregiversData = [
   {
     id: 1,
     name: "Dr. Sarah Johnson",
@@ -35,6 +46,27 @@ const favoritesCaregivers = [
     specialty: "Home Care Nurse",
     rating: 4.7,
     reviews: 83
+  },
+  {
+    id: 4,
+    name: "Vikram Singh",
+    specialty: "Home Health Aide",
+    rating: 4.7,
+    reviews: 98
+  },
+  {
+    id: 5,
+    name: "Deepa Nair",
+    specialty: "Senior Care Specialist",
+    rating: 4.9,
+    reviews: 173
+  },
+  {
+    id: 6,
+    name: "Sanjay Reddy",
+    specialty: "Disability Support Worker",
+    rating: 4.8,
+    reviews: 131
   }
 ];
 
@@ -44,6 +76,13 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
   const [activeSidebarItem, setActiveSidebarItem] = useState('appointments');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const { favorites } = useFavoriteCaregivers();
+  
+  // Get the favorite caregivers data using the IDs from favorites
+  const favoriteCaregivers = caregiversData.filter(caregiver => 
+    favorites.includes(caregiver.id.toString())
+  );
+  
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -89,7 +128,7 @@ const Profile = () => {
   const tabs = [
     { id: 'upcoming', label: 'Upcoming', count: 2 },
     { id: 'past', label: 'Past', count: 5 },
-    { id: 'favorites', label: 'Favorites', count: 3 }
+    { id: 'favorites', label: 'Favorites', count: favorites.length }
   ];
   
   const getStatusColor = (status: string) => {
@@ -497,53 +536,66 @@ const Profile = () => {
               <h2 className="text-xl font-bold mb-6">Favorite Caregivers</h2>
               
               <div className="space-y-4">
-                {favoritesCaregivers.map(caregiver => (
-                  <div key={caregiver.id} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 bg-guardian-100 rounded-full flex items-center justify-center">
-                        <span className="text-guardian-400">Photo</span>
+                {favoriteCaregivers.length > 0 ? (
+                  favoriteCaregivers.map(caregiver => (
+                    <div key={caregiver.id} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 bg-guardian-100 rounded-full flex items-center justify-center">
+                          <span className="text-guardian-400">Photo</span>
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{caregiver.name}</h3>
+                          <p className="text-sm text-muted-foreground">{caregiver.specialty}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-medium">{caregiver.name}</h3>
-                        <p className="text-sm text-muted-foreground">{caregiver.specialty}</p>
+                      
+                      <div className="flex items-center mb-3">
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          <span className="font-medium text-sm">{caregiver.rating}</span>
+                          <span className="text-xs text-muted-foreground ml-1">({caregiver.reviews} reviews)</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="primary" 
+                          size="sm"
+                          onClick={() => {
+                            navigate('/book-service');
+                          }}
+                        >
+                          Book Now
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            navigate(`/caregiver/${caregiver.id}`);
+                          }}
+                        >
+                          View Profile
+                        </Button>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center mb-3">
-                      <div className="flex items-center">
-                        <svg className="w-4 h-4 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className="font-medium text-sm">{caregiver.rating}</span>
-                        <span className="text-xs text-muted-foreground ml-1">({caregiver.reviews} reviews)</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="primary" 
-                        size="sm"
-                        onClick={() => {
-                          navigate('/book-service');
-                        }}
-                      >
-                        Book Now
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          toast({
-                            title: "Request Sent",
-                            description: `Your request for ${caregiver.name}'s details has been sent.`,
-                          });
-                        }}
-                      >
-                        View Profile
-                      </Button>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Heart className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No favorite caregivers yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Save caregivers to your favorites to quickly find them later
+                    </p>
+                    <Button 
+                      variant="primary" 
+                      onClick={() => navigate('/caregivers')}
+                    >
+                      Browse Caregivers
+                    </Button>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </AnimatedCard>
@@ -826,197 +878,4 @@ const Profile = () => {
                         </div>
                       </div>
                       <div className="flex justify-end gap-2 mt-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleCancel(2)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button 
-                          variant="primary" 
-                          size="sm"
-                        >
-                          <a href="#tracking">Track</a>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-medium">Medical Care Visit</h3>
-                          <p className="text-sm text-muted-foreground">July 15, 2023, 2:00 PM - 3:30 PM</p>
-                        </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Completed</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-                        <div className="flex items-center gap-1">
-                          <Clock size={16} />
-                          <span>1.5 hours</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <User size={16} />
-                          <span>Dr. Emily Davies</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2 mt-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleAddReview(3)}
-                        >
-                          Add Review
-                        </Button>
-                        <Button 
-                          variant="primary" 
-                          size="sm"
-                          onClick={() => {
-                            toast({
-                              title: "Booking Again",
-                              description: "Redirecting you to book this service again.",
-                            });
-                            navigate('/book-service');
-                          }}
-                        >
-                          Book Again
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-medium">Physical Therapy</h3>
-                          <p className="text-sm text-muted-foreground">July 10, 2023, 11:00 AM - 12:00 PM</p>
-                        </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Completed</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-                        <div className="flex items-center gap-1">
-                          <Clock size={16} />
-                          <span>1 hour</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <User size={16} />
-                          <span>Michael Thompson</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2 mt-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleAddReview(4)}
-                        >
-                          Add Review
-                        </Button>
-                        <Button 
-                          variant="primary" 
-                          size="sm"
-                          onClick={() => {
-                            toast({
-                              title: "Booking Again",
-                              description: "Redirecting you to book this service again.",
-                            });
-                            navigate('/book-service');
-                          }}
-                        >
-                          Book Again
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </AnimatedCard>
-          </>
-        );
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="md:col-span-1">
-            <AnimatedCard>
-              <div className="p-6">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="flex-shrink-0 h-16 w-16 bg-guardian-100 rounded-full flex items-center justify-center text-guardian-600 text-xl font-semibold">
-                    {profileData.firstName?.[0]}{profileData.lastName?.[0]}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold">{profileData.firstName} {profileData.lastName}</h2>
-                    <p className="text-sm text-muted-foreground">{profileData.email}</p>
-                  </div>
-                </div>
-                
-                <nav className="space-y-1">
-                  <button 
-                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${activeSidebarItem === 'appointments' ? 'bg-guardian-100 text-guardian-900' : 'hover:bg-slate-100'}`}
-                    onClick={() => setActiveSidebarItem('appointments')}
-                  >
-                    <CalendarIcon className="mr-3" size={18} />
-                    <span>Appointments</span>
-                  </button>
-                  
-                  <button 
-                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${activeSidebarItem === 'personal-info' ? 'bg-guardian-100 text-guardian-900' : 'hover:bg-slate-100'}`}
-                    onClick={() => setActiveSidebarItem('personal-info')}
-                  >
-                    <User className="mr-3" size={18} />
-                    <span>Personal Information</span>
-                  </button>
-                  
-                  <button 
-                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${activeSidebarItem === 'favorite-caregivers' ? 'bg-guardian-100 text-guardian-900' : 'hover:bg-slate-100'}`}
-                    onClick={() => setActiveSidebarItem('favorite-caregivers')}
-                  >
-                    <Heart className="mr-3" size={18} />
-                    <span>Favorite Caregivers</span>
-                  </button>
-                  
-                  <button 
-                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${activeSidebarItem === 'payment-methods' ? 'bg-guardian-100 text-guardian-900' : 'hover:bg-slate-100'}`}
-                    onClick={() => setActiveSidebarItem('payment-methods')}
-                  >
-                    <CreditCard className="mr-3" size={18} />
-                    <span>Payment Methods</span>
-                  </button>
-                  
-                  <button 
-                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${activeSidebarItem === 'settings' ? 'bg-guardian-100 text-guardian-900' : 'hover:bg-slate-100'}`}
-                    onClick={() => setActiveSidebarItem('settings')}
-                  >
-                    <Settings className="mr-3" size={18} />
-                    <span>Settings</span>
-                  </button>
-                  
-                  <button 
-                    className="w-full flex items-center px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors mt-8"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="mr-3" size={18} />
-                    <span>Sign Out</span>
-                  </button>
-                </nav>
-              </div>
-            </AnimatedCard>
-          </div>
-          
-          <div className="md:col-span-3">
-            {renderSidebarContent()}
-          </div>
-        </div>
-      </div>
-      
-      <Footer />
-    </div>
-  );
-};
-
-export default Profile;
+                        <Button

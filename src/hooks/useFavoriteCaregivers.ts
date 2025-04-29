@@ -30,14 +30,15 @@ export function useFavoriteCaregivers() {
       
       // For local development/demo, use localStorage instead of Supabase
       // This avoids UUID format issues with the mock user IDs
-      const storedFavorites = localStorage.getItem(`favorites_${user.id}`);
+      const storageKey = `favorites_${user.id}`;
+      const storedFavorites = localStorage.getItem(storageKey);
       if (storedFavorites) {
         const favoriteIds = JSON.parse(storedFavorites);
         console.log("Fetched favorite caregivers from localStorage:", favoriteIds);
         setFavorites(favoriteIds);
       } else {
         // Initialize empty favorites for this user
-        localStorage.setItem(`favorites_${user.id}`, JSON.stringify([]));
+        localStorage.setItem(storageKey, JSON.stringify([]));
         setFavorites([]);
       }
     } catch (error) {
@@ -76,16 +77,21 @@ export function useFavoriteCaregivers() {
       // Also store in general localStorage as fallback
       localStorage.setItem('favorites', JSON.stringify(newFavorites));
       
-      return Promise.resolve();
+      return Promise.resolve(!isFavorite); // Return whether it's now a favorite
     } catch (error) {
       console.error('Error toggling favorite:', error);
       return Promise.reject(error);
     }
   };
 
+  const isFavorite = (caregiverId: string) => {
+    return favorites.includes(caregiverId);
+  };
+
   return {
     favorites,
     isLoading,
-    toggleFavorite
+    toggleFavorite,
+    isFavorite
   };
 }
