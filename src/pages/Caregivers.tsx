@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import AnimatedCard from '@/components/ui/AnimatedCard';
-import Button from '@/components/ui/Button';
-import RequestCustomMatch from '@/components/forms/RequestCustomMatch';
-import { Link } from 'react-router-dom';
-import { Star, Filter, Search, MapPin, CheckCircle, Clock, Award, Heart } from 'lucide-react';
-import { PrivacySettingsDialog } from '@/components/settings/PrivacySettingsDialog';
 import { useFavoriteCaregivers } from '@/hooks/useFavoriteCaregivers';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { PrivacySettingsDialog } from '@/components/settings/PrivacySettingsDialog';
+import SearchFilterBar from '@/components/caregivers/SearchFilterBar';
+import FilterPills from '@/components/caregivers/FilterPills';
+import CaregiverList from '@/components/caregivers/CaregiverList';
+import CTASection from '@/components/caregivers/CTASection';
+import { Caregiver } from '@/types/caregiver';
 
 const Caregivers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   
-  const caregivers = [
+  const caregivers: Caregiver[] = [
     {
       id: 1,
       name: 'Priya Sharma',
@@ -184,207 +185,37 @@ const Caregivers = () => {
               </div>
               
               {/* Search and Filter */}
-              <div className="bg-white rounded-xl shadow-sm border border-border p-4 mb-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="relative flex-grow">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-                    <input
-                      type="text"
-                      placeholder="Search by name, specialty, or service..."
-                      className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-guardian-400"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  <div className="relative">
-                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-                    <select
-                      className="pl-10 pr-8 py-2 border border-input rounded-lg appearance-none bg-transparent focus:outline-none focus:ring-2 focus:ring-guardian-400"
-                      value={selectedFilter}
-                      onChange={(e) => setSelectedFilter(e.target.value)}
-                    >
-                      {filters.map(filter => (
-                        <option key={filter.id} value={filter.id}>
-                          {filter.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <SearchFilterBar 
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                selectedFilter={selectedFilter}
+                setSelectedFilter={setSelectedFilter}
+                filters={filters}
+              />
               
               {/* Filter Pills */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {filters.map(filter => (
-                  <button
-                    key={filter.id}
-                    className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
-                      selectedFilter === filter.id
-                        ? 'bg-guardian-500 text-white'
-                        : 'bg-white border border-border text-muted-foreground hover:bg-guardian-50 hover:text-guardian-500'
-                    }`}
-                    onClick={() => setSelectedFilter(filter.id)}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
+              <FilterPills 
+                filters={filters}
+                selectedFilter={selectedFilter}
+                onFilterSelect={setSelectedFilter}
+              />
             </div>
           </div>
         </section>
         
         {/* Caregivers List */}
-        <section className="py-12">
-          <div className="container mx-auto px-4 sm:px-6">
-            <div className="mb-6">
-              <h2 className="text-xl font-medium">
-                {filteredCaregivers.length} caregivers available
-              </h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCaregivers.map((caregiver, index) => (
-                <AnimatedCard
-                  key={caregiver.id}
-                  delay={index}
-                  className="h-full"
-                  hoverEffect="lift"
-                >
-                  <div className="flex flex-col h-full">
-                    <div className="flex flex-col md:flex-row items-center md:items-start gap-4 mb-4">
-                      <div className="h-20 w-20 bg-guardian-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-guardian-400">Photo</span>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-xl font-medium">{caregiver.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-1">{caregiver.specialty}</p>
-                        <div className="flex items-center mb-1">
-                          <Star size={16} className="text-yellow-500 mr-1" />
-                          <span className="font-medium">{caregiver.rating}</span>
-                          <span className="text-muted-foreground text-sm ml-1">({caregiver.reviews} reviews)</span>
-                        </div>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <MapPin size={14} className="mr-1" />
-                          <span>{caregiver.distance}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <p className="text-sm font-medium mb-1">Services</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {caregiver.services.map(service => (
-                          <span key={service} className="px-2 py-0.5 text-xs bg-guardian-50 text-guardian-700 rounded-full">
-                            {service}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {caregiver.badges.map((badge) => (
-                        <span 
-                          key={badge} 
-                          className={`px-2 py-0.5 text-xs rounded-full flex items-center ${
-                            badge === 'Verified' 
-                              ? 'bg-green-100 text-green-700' 
-                              : badge === 'Top Rated'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-guardian-100 text-guardian-700'
-                          }`}
-                        >
-                          {badge === 'Verified' && <CheckCircle size={10} className="mr-1" />}
-                          {badge === 'Top Rated' && <Award size={10} className="mr-1" />}
-                          {badge}
-                        </span>
-                      ))}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Experience</p>
-                        <p className="font-medium">{caregiver.experience}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Hourly Rate</p>
-                        <p className="font-medium">{caregiver.hourlyRate}/hr</p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-guardian-50 rounded-lg px-3 py-2 mb-4 flex items-center text-sm">
-                      <Clock size={16} className="text-guardian-500 mr-2" />
-                      <span className={caregiver.availability.includes('Now') ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
-                        {caregiver.availability}
-                      </span>
-                    </div>
-                    
-                    <div className="mt-auto pt-4 grid grid-cols-2 gap-3">
-                      <Link to={`/caregiver/${caregiver.id}`} className="inline-block">
-                        <Button 
-                          variant="secondary"
-                          className="w-full" 
-                        >
-                          View Profile
-                        </Button>
-                      </Link>
-                      <Button 
-                        variant="primary"
-                        onClick={() => handleFavoriteToggle(caregiver.id, caregiver.name)}
-                      >
-                        <Heart 
-                          size={16} 
-                          className="mr-1" 
-                          fill={isFavorite(caregiver.id.toString()) ? "currentColor" : "none"} 
-                        />
-                        {isFavorite(caregiver.id.toString()) ? 'Saved' : 'Save'}
-                      </Button>
-                    </div>
-                  </div>
-                </AnimatedCard>
-              ))}
-            </div>
-            
-            {filteredCaregivers.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-lg text-muted-foreground mb-4">No caregivers match your search criteria</p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSelectedFilter('all');
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              </div>
-            )}
-          </div>
-        </section>
+        <CaregiverList 
+          caregivers={filteredCaregivers}
+          searchTerm={searchTerm}
+          selectedFilter={selectedFilter}
+          setSearchTerm={setSearchTerm}
+          setSelectedFilter={setSelectedFilter}
+          isFavorite={isFavorite}
+          onToggleFavorite={handleFavoriteToggle}
+        />
         
         {/* CTA Section */}
-        <section className="py-12 bg-guardian-50">
-          <div className="container mx-auto px-4 sm:px-6">
-            <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">Can't find what you're looking for?</h2>
-              <p className="text-lg text-muted-foreground mb-6">
-                Let us know your specific requirements, and we'll help match you with the perfect caregiver.
-              </p>
-              <RequestCustomMatch 
-                trigger={
-                  <Button variant="primary" size="lg">
-                    Request a Custom Match
-                  </Button>
-                }
-              />
-            </div>
-          </div>
-        </section>
+        <CTASection />
       </main>
       
       <Footer />
