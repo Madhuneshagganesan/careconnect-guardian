@@ -36,9 +36,27 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
   const initializeMap = () => {
     if (!mapContainer.current) return;
     
-    // Clean up existing map if any
+    // Clean up existing map if any - but safely
     if (map.current) {
-      map.current.remove();
+      // Remove markers first to avoid issues
+      if (caregiverMarker.current) {
+        caregiverMarker.current.remove();
+        caregiverMarker.current = null;
+      }
+      
+      if (destinationMarker.current) {
+        destinationMarker.current.remove();
+        destinationMarker.current = null;
+      }
+      
+      // Then remove the map
+      try {
+        map.current.remove();
+      } catch (e) {
+        console.error("Error removing map:", e);
+        // Continue with initialization even if removal failed
+      }
+      map.current = null;
     }
     
     setLoading(true);
@@ -145,8 +163,22 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     
     // Clean up on unmount
     return () => {
+      // Safely remove markers first
+      if (caregiverMarker.current) {
+        caregiverMarker.current.remove();
+      }
+      
+      if (destinationMarker.current) {
+        destinationMarker.current.remove();
+      }
+      
+      // Then safely remove the map
       if (map.current) {
-        map.current.remove();
+        try {
+          map.current.remove();
+        } catch (e) {
+          console.error("Error during cleanup:", e);
+        }
       }
     };
   }, [caregiverPosition, destination, mapboxToken]);
