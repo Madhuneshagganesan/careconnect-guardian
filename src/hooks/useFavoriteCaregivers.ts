@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -9,37 +9,30 @@ export function useFavoriteCaregivers() {
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      fetchFavorites();
-    } else {
-      // Use local storage for non-authenticated users
-      const storedFavorites = localStorage.getItem('favorites');
-      if (storedFavorites) {
-        setFavorites(JSON.parse(storedFavorites));
-      }
-      setIsLoading(false);
-    }
-  }, [user]);
-
-  const fetchFavorites = async () => {
-    if (!user) return;
-    
+  const fetchFavorites = useCallback(async () => {
     try {
       setIsLoading(true);
       
-      // For local development/demo, use localStorage instead of Supabase
-      // This avoids UUID format issues with the mock user IDs
-      const storageKey = `favorites_${user.id}`;
-      const storedFavorites = localStorage.getItem(storageKey);
-      if (storedFavorites) {
-        const favoriteIds = JSON.parse(storedFavorites);
-        console.log("Fetched favorite caregivers from localStorage:", favoriteIds);
-        setFavorites(favoriteIds);
+      if (user) {
+        // For local development/demo, use localStorage instead of Supabase
+        // This avoids UUID format issues with the mock user IDs
+        const storageKey = `favorites_${user.id}`;
+        const storedFavorites = localStorage.getItem(storageKey);
+        if (storedFavorites) {
+          const favoriteIds = JSON.parse(storedFavorites);
+          console.log("Fetched favorite caregivers from localStorage:", favoriteIds);
+          setFavorites(favoriteIds);
+        } else {
+          // Initialize empty favorites for this user
+          localStorage.setItem(storageKey, JSON.stringify([]));
+          setFavorites([]);
+        }
       } else {
-        // Initialize empty favorites for this user
-        localStorage.setItem(storageKey, JSON.stringify([]));
-        setFavorites([]);
+        // Use general localStorage for non-authenticated users
+        const storedFavorites = localStorage.getItem('favorites');
+        if (storedFavorites) {
+          setFavorites(JSON.parse(storedFavorites));
+        }
       }
     } catch (error) {
       console.error('Error in favorite caregivers fetch:', error);
@@ -52,7 +45,11 @@ export function useFavoriteCaregivers() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchFavorites();
+  }, [fetchFavorites]);
 
   const toggleFavorite = async (caregiverId: string) => {
     try {
@@ -92,6 +89,7 @@ export function useFavoriteCaregivers() {
     favorites,
     isLoading,
     toggleFavorite,
-    isFavorite
+    isFavorite,
+    refreshFavorites: fetchFavorites
   };
 }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
@@ -878,4 +879,225 @@ const Profile = () => {
                         </div>
                       </div>
                       <div className="flex justify-end gap-2 mt-3">
-                        <Button
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleReschedule(2)}
+                        >
+                          Reschedule
+                        </Button>
+                        <Button 
+                          variant="warm" 
+                          size="sm"
+                          onClick={() => handleCancel(2)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : activeTab === 'past' ? (
+                  <div className="space-y-4">
+                    <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-medium">Home Care Service</h3>
+                          <p className="text-sm text-muted-foreground">April 20, 2025, 2:00 PM - 4:00 PM</p>
+                        </div>
+                        <span className="px-2 py-1 bg-guardian-100 text-guardian-700 text-xs rounded-full">Completed</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+                        <div className="flex items-center gap-1">
+                          <User size={16} />
+                          <span>Emily Davies</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock size={16} />
+                          <span>2 hours</span>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">₹700</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleAddReview(3)}
+                        >
+                          Add Review
+                        </Button>
+                        <Button 
+                          variant="primary" 
+                          size="sm"
+                          onClick={() => {
+                            navigate('/book-service');
+                          }}
+                        >
+                          Book Again
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {favoriteCaregivers.length > 0 ? (
+                      favoriteCaregivers.map(caregiver => (
+                        <div key={caregiver.id} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-12 h-12 bg-guardian-100 rounded-full flex items-center justify-center">
+                              <span className="text-guardian-400">Photo</span>
+                            </div>
+                            <div>
+                              <h3 className="font-medium">{caregiver.name}</h3>
+                              <p className="text-sm text-muted-foreground">{caregiver.specialty}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center mb-3">
+                            <div className="flex items-center">
+                              <Star className="w-4 h-4 text-yellow-500 mr-1" />
+                              <span className="font-medium text-sm">{caregiver.rating}</span>
+                              <span className="text-xs text-muted-foreground ml-1">({caregiver.reviews} reviews)</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="primary" 
+                              size="sm"
+                              onClick={() => {
+                                navigate('/book-service');
+                              }}
+                            >
+                              Book Now
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                navigate(`/caregiver/${caregiver.id}`);
+                              }}
+                            >
+                              View Profile
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <Heart className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+                        <h3 className="text-lg font-medium mb-2">No favorite caregivers yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Save caregivers to your favorites to quickly find them later
+                        </p>
+                        <Button 
+                          variant="primary" 
+                          onClick={() => navigate('/caregivers')}
+                        >
+                          Browse Caregivers
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </AnimatedCard>
+          </>
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-secondary/10">
+      <Navbar />
+      
+      <main className="container mx-auto px-4 sm:px-6 pt-32 pb-16">
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Sidebar */}
+          <div className="md:w-1/4">
+            <AnimatedCard className="sticky top-28">
+              <div className="p-4">
+                <div className="flex items-center gap-4 p-3 border-b">
+                  <div className="h-16 w-16 bg-guardian-100 rounded-full flex items-center justify-center">
+                    <span className="text-2xl font-medium text-guardian-400">
+                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    </span>
+                  </div>
+                  <div>
+                    <h2 className="font-medium">{user?.firstName} {user?.lastName}</h2>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                  </div>
+                </div>
+                
+                <nav className="mt-4 space-y-1.5">
+                  <button 
+                    className={`flex items-center w-full p-2.5 rounded-lg text-left ${activeSidebarItem === 'appointments' ? 'bg-guardian-50 text-guardian-700' : 'hover:bg-secondary/50'}`}
+                    onClick={() => setActiveSidebarItem('appointments')}
+                  >
+                    <CalendarIcon className="mr-3" size={18} />
+                    <span>Appointments</span>
+                  </button>
+                  
+                  <button 
+                    className={`flex items-center w-full p-2.5 rounded-lg text-left ${activeSidebarItem === 'personal-info' ? 'bg-guardian-50 text-guardian-700' : 'hover:bg-secondary/50'}`}
+                    onClick={() => setActiveSidebarItem('personal-info')}
+                  >
+                    <User className="mr-3" size={18} />
+                    <span>Personal Information</span>
+                  </button>
+                  
+                  <button 
+                    className={`flex items-center w-full p-2.5 rounded-lg text-left ${activeSidebarItem === 'favorite-caregivers' ? 'bg-guardian-50 text-guardian-700' : 'hover:bg-secondary/50'}`}
+                    onClick={() => setActiveSidebarItem('favorite-caregivers')}
+                  >
+                    <Heart className="mr-3" size={18} />
+                    <span>Favorite Caregivers</span>
+                    {favorites.length > 0 && (
+                      <span className="ml-auto bg-guardian-100 text-guardian-700 px-2 py-0.5 text-xs rounded-full">
+                        {favorites.length}
+                      </span>
+                    )}
+                  </button>
+                  
+                  <button 
+                    className={`flex items-center w-full p-2.5 rounded-lg text-left ${activeSidebarItem === 'payment-methods' ? 'bg-guardian-50 text-guardian-700' : 'hover:bg-secondary/50'}`}
+                    onClick={() => setActiveSidebarItem('payment-methods')}
+                  >
+                    <CreditCard className="mr-3" size={18} />
+                    <span>Payment Methods</span>
+                  </button>
+                  
+                  <button 
+                    className={`flex items-center w-full p-2.5 rounded-lg text-left ${activeSidebarItem === 'settings' ? 'bg-guardian-50 text-guardian-700' : 'hover:bg-secondary/50'}`}
+                    onClick={() => setActiveSidebarItem('settings')}
+                  >
+                    <Settings className="mr-3" size={18} />
+                    <span>Settings</span>
+                  </button>
+                  
+                  <button 
+                    className="flex items-center w-full p-2.5 rounded-lg text-left text-red-600 hover:bg-red-50"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-3" size={18} />
+                    <span>Logout</span>
+                  </button>
+                </nav>
+              </div>
+            </AnimatedCard>
+          </div>
+          
+          {/* Main Content */}
+          <div className="md:w-3/4">
+            {renderSidebarContent()}
+          </div>
+        </div>
+      </main>
+      
+      <Footer />
+    </div>
+  );
+};
+
+export default Profile;
