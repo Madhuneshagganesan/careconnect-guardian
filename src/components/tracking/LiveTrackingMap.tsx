@@ -2,17 +2,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Loader2, MapPin } from 'lucide-react';
-import { Button } from '@/components/ui/shadcn-button';
 import { toast } from '@/components/ui/use-toast';
-
-// Initialize mapbox token
-const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbDZ2MDZ6dDYwNnljM2JwZXRydXlvdnBnIn0.boA9CJ9_IWvrIWlYxzDdGg';
-
-interface MapPosition {
-  lng: number;
-  lat: number;
-}
+import { getStoredMapboxToken, MapPosition, calculateMapBounds } from './utils/mapUtils';
+import MapLoadingState from './MapLoadingState';
+import MapErrorState from './MapErrorState';
+import MapTrackingControls from './MapTrackingControls';
+import MapRouteManager from './MapRouteManager';
 
 interface LiveTrackingMapProps {
   caregiverPosition?: MapPosition;
@@ -29,10 +24,7 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
   const destinationMarker = useRef<mapboxgl.Marker | null>(null);
   const [loading, setLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [mapboxToken, setMapboxToken] = useState<string>(() => {
-    // Try to get token from localStorage first
-    return localStorage.getItem('mapbox_token') || DEFAULT_MAPBOX_TOKEN;
-  });
+  const [mapboxToken, setMapboxToken] = useState<string>(getStoredMapboxToken);
   
   // Add simulated movement state
   const [simulationActive, setSimulationActive] = useState(false);
@@ -82,7 +74,7 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
       // Add navigation controls (zoom in/out, rotate)
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
       
-      // When map loads, add markers and route
+      // When map loads, add markers
       map.current.on('load', () => {
         if (!map.current) return;
         
@@ -98,9 +90,6 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
             .setLngLat([caregiverPosition.lng, caregiverPosition.lat])
             .addTo(map.current)
             .setPopup(new mapboxgl.Popup().setHTML('<p class="font-medium">Your Caregiver</p>'));
-          
-          // Add a line between caregiver and destination
-          addRouteLine(caregiverPosition);
           
           // Fit bounds to show both markers
           const bounds = new mapboxgl.LngLatBounds()
@@ -139,51 +128,7 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     }
   };
   
-  // Function to add/update the route line
-  const addRouteLine = (currentPosition: MapPosition) => {
-    if (!map.current) return;
-    
-    // Remove existing route if it exists
-    if (map.current.getSource('route')) {
-      map.current.removeLayer('route');
-      map.current.removeSource('route');
-    }
-    
-    // Add the updated route
-    map.current.addSource('route', {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [currentPosition.lng, currentPosition.lat],
-            [destination.lng, destination.lat]
-          ]
-        }
-      }
-    });
-    
-    // Add the route line layer
-    map.current.addLayer({
-      id: 'route',
-      type: 'line',
-      source: 'route',
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round'
-      },
-      paint: {
-        'line-color': '#5C69D1',
-        'line-width': 4,
-        'line-opacity': 0.7,
-        'line-dasharray': [1, 1]
-      }
-    });
-  };
-  
-  // Function to simulate caregiver movement
+  // Start simulation function
   const startSimulation = () => {
     if (!map.current || !caregiverMarker.current) return;
     
@@ -196,7 +141,6 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     // Calculate direction from caregiver to destination
     const dx = destination.lng - caregiverPosition.lng;
     const dy = destination.lat - caregiverPosition.lat;
-    const distance = Math.sqrt(dx * dx + dy * dy);
     
     // Number of steps to reach destination (simulate ~3 minutes of movement)
     const totalSteps = 30;
@@ -226,9 +170,6 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
       // Update marker position
       caregiverMarker.current?.setLngLat([currentPosition.lng, currentPosition.lat]);
       
-      // Update route line
-      addRouteLine(currentPosition);
-      
       currentStep++;
       
       // Every 3rd step, show an update notification
@@ -252,6 +193,12 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     setSimulationActive(false);
   };
   
+  // Handle token update
+  const handleTokenUpdate = () => {
+    setMapboxToken(getStoredMapboxToken());
+  };
+  
+  // Initialize map on mount and when token changes
   useEffect(() => {
     initializeMap();
     
@@ -279,77 +226,31 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     };
   }, [caregiverPosition, destination, mapboxToken]);
   
-  const handleTokenSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const tokenInput = e.currentTarget.elements.namedItem('mapboxToken') as HTMLInputElement;
-    const newToken = tokenInput.value.trim();
-    
-    if (newToken) {
-      // Save to localStorage
-      localStorage.setItem('mapbox_token', newToken);
-      setMapboxToken(newToken);
-      toast({
-        title: "Mapbox token updated",
-        description: "Your map will now reload with the new token",
-      });
-    }
-  };
-  
   return (
     <div className="relative w-full h-96 sm:h-[450px] rounded-lg overflow-hidden border border-border">
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-          <div className="flex flex-col items-center">
-            <Loader2 className="h-8 w-8 animate-spin text-guardian-500 mb-2" />
-            <p className="text-sm text-muted-foreground">Loading map...</p>
-          </div>
-        </div>
-      )}
+      {loading && <MapLoadingState />}
       
-      {/* Live tracking controls */}
-      {!loading && !mapError && !simulationActive && (
-        <div className="absolute bottom-4 left-0 right-0 z-10 flex justify-center">
-          <Button 
-            onClick={startSimulation} 
-            className="bg-guardian-600 hover:bg-guardian-700 text-white flex items-center gap-2 shadow-lg"
-          >
-            <MapPin size={16} />
-            Start Live Tracking
-          </Button>
-        </div>
-      )}
-      
-      {simulationActive && (
-        <div className="absolute bottom-4 left-0 right-0 z-10 flex justify-center">
-          <div className="bg-guardian-50 border border-guardian-200 rounded-full px-4 py-2 text-sm font-medium text-guardian-800 flex items-center gap-2 shadow-lg animate-pulse">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Live tracking active
-          </div>
-        </div>
+      {!loading && !mapError && (
+        <MapTrackingControls 
+          simulationActive={simulationActive}
+          onStartSimulation={startSimulation}
+        />
       )}
       
       {mapError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-          <div className="flex flex-col items-center p-4 max-w-md">
-            <p className="text-red-500 font-medium text-center">{mapError}</p>
-            <p className="text-sm text-muted-foreground mt-2 text-center mb-4">
-              Please enter your Mapbox public token below
-            </p>
-            <form onSubmit={handleTokenSubmit} className="w-full space-y-2">
-              <input
-                type="text"
-                name="mapboxToken"
-                placeholder="Enter Mapbox token"
-                className="w-full p-2 border rounded text-sm"
-                defaultValue={mapboxToken !== DEFAULT_MAPBOX_TOKEN ? mapboxToken : ''}
-              />
-              <div className="text-xs text-muted-foreground text-center mb-2">
-                Get your token at <a href="https://mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">mapbox.com</a> (Account → Access tokens)
-              </div>
-              <Button type="submit" className="w-full">Apply Token</Button>
-            </form>
-          </div>
-        </div>
+        <MapErrorState 
+          mapError={mapError} 
+          mapboxToken={mapboxToken}
+          onTokenUpdate={handleTokenUpdate}
+        />
+      )}
+      
+      {map.current && (
+        <MapRouteManager 
+          map={map.current}
+          caregiverPosition={caregiverPosition}
+          destinationPosition={destination}
+        />
       )}
       
       <div ref={mapContainer} className="w-full h-full" />
