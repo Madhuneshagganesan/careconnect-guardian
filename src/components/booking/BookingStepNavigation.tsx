@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface BookingStepNavigationProps {
@@ -9,6 +9,9 @@ interface BookingStepNavigationProps {
   handleBack: () => void;
   handleNext: () => void;
   isNextDisabled?: boolean;
+  showConfirmButton?: boolean;
+  handleConfirm?: () => void;
+  isSubmitting?: boolean;
 }
 
 const BookingStepNavigation: React.FC<BookingStepNavigationProps> = ({
@@ -16,7 +19,10 @@ const BookingStepNavigation: React.FC<BookingStepNavigationProps> = ({
   totalSteps,
   handleBack,
   handleNext,
-  isNextDisabled = false
+  isNextDisabled = false,
+  showConfirmButton = false,
+  handleConfirm,
+  isSubmitting = false
 }) => {
   return (
     <div className="mt-8 flex justify-between">
@@ -25,6 +31,7 @@ const BookingStepNavigation: React.FC<BookingStepNavigationProps> = ({
           variant="outline" 
           onClick={handleBack}
           className="flex items-center"
+          disabled={isSubmitting}
         >
           <ArrowLeft size={16} className="mr-2" />
           Back
@@ -33,11 +40,22 @@ const BookingStepNavigation: React.FC<BookingStepNavigationProps> = ({
         <div></div>
       )}
       
-      {currentStep < totalSteps && (
+      {showConfirmButton ? (
+        <Button 
+          variant="primary" 
+          onClick={handleConfirm}
+          disabled={isSubmitting}
+          isLoading={isSubmitting}
+          className="flex items-center"
+        >
+          {!isSubmitting && <CheckCircle size={16} className="mr-2" />}
+          Confirm Payment
+        </Button>
+      ) : currentStep < totalSteps && (
         <Button 
           variant="primary" 
           onClick={handleNext}
-          disabled={isNextDisabled}
+          disabled={isNextDisabled || isSubmitting}
           className="flex items-center"
         >
           Next

@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
-import { Bell, BellRing } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Bell, BellRing, Check, ArrowRight } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useLiveTracking } from '@/providers/LiveTrackingProvider';
 
 interface Notification {
   id: string;
@@ -19,6 +20,30 @@ const NotificationSystem = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const navigate = useNavigate();
+  const { trackingData } = useLiveTracking();
+
+  // Helper function to add a notification
+  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'time' | 'read'>) => {
+    const newNotification = {
+      ...notification,
+      id: Date.now().toString(),
+      time: new Date(),
+      read: false,
+    };
+    
+    setNotifications(prev => {
+      const updated = [newNotification, ...prev];
+      localStorage.setItem('notifications', JSON.stringify(updated));
+      return updated;
+    });
+    
+    toast({
+      title: notification.title,
+      description: notification.message,
+    });
+    
+    return newNotification.id;
+  }, []);
 
   // Check for unread notifications
   useEffect(() => {
@@ -26,45 +51,81 @@ const NotificationSystem = () => {
     setHasUnread(unreadExists);
   }, [notifications]);
 
-  // Simulate receiving real-time notifications
+  // Load notifications from localStorage on mount
   useEffect(() => {
-    // Load notifications from localStorage on mount
     const savedNotifications = localStorage.getItem('notifications');
     if (savedNotifications) {
-      const parsedNotifications = JSON.parse(savedNotifications);
-      // Convert string dates back to Date objects
-      parsedNotifications.forEach((notif: any) => {
-        notif.time = new Date(notif.time);
-      });
-      setNotifications(parsedNotifications);
+      try {
+        const parsedNotifications = JSON.parse(savedNotifications);
+        // Convert string dates back to Date objects
+        parsedNotifications.forEach((notif: any) => {
+          notif.time = new Date(notif.time);
+        });
+        setNotifications(parsedNotifications);
+      } catch (e) {
+        console.error("Error parsing notifications:", e);
+      }
     }
+  }, []);
 
-    // Simulate receiving a caregiver notification after 5 seconds if there are none
+  // Track caregiver status changes and generate notifications
+  useEffect(() => {
+    if (trackingData) {
+      const statusNotificationKey = `status_${trackingData.status}`;
+      const hasShownStatus = localStorage.getItem(statusNotificationKey);
+      
+      if (!hasShownStatus) {
+        let message = "";
+        let type: 'info' | 'success' | 'warning' | 'error' = 'info';
+        
+        switch (trackingData.status) {
+          case 'assigned':
+            message = "A caregiver has been assigned to your booking.";
+            break;
+          case 'on_the_way':
+            message = `Your caregiver is on the way and will arrive in approximately ${trackingData.eta} minutes.`;
+            break;
+          case 'arrived':
+            message = "Your caregiver has arrived at the destination.";
+            type = 'success';
+            break;
+          case 'started':
+            message = "Your service has started.";
+            type = 'success';
+            break;
+          case 'completed':
+            message = "Your service has been completed. Please rate your experience.";
+            type = 'success';
+            break;
+        }
+        
+        if (message) {
+          addNotification({
+            title: `Caregiver ${trackingData.status}`,
+            message,
+            type,
+            link: '/profile'
+          });
+          
+          localStorage.setItem(statusNotificationKey, 'true');
+        }
+      }
+    }
+  }, [trackingData, addNotification]);
+
+  // Simulate receiving a caregiver notification after 5 seconds if there are none
+  useEffect(() => {
     const timer = setTimeout(() => {
       if (notifications.length === 0) {
-        const newNotification = {
-          id: Date.now().toString(),
+        addNotification({
           title: 'Caregiver Update',
           message: 'Your caregiver is on the way and will arrive in 15 minutes.',
-          type: 'info' as const,
-          time: new Date(),
-          read: false,
+          type: 'info',
           link: '/profile'
-        };
-        
-        setNotifications(prev => {
-          const updated = [...prev, newNotification];
-          localStorage.setItem('notifications', JSON.stringify(updated));
-          return updated;
-        });
-        
-        toast({
-          title: newNotification.title,
-          description: newNotification.message,
         });
       }
     }, 5000);
-
+    
     // Set up simulated interval for generating notifications based on user activity
     const interval = setInterval(() => {
       // Random chance to generate a notification (10% chance every minute)
@@ -91,27 +152,7 @@ const NotificationSystem = () => {
         ];
 
         const randomType = notificationTypes[Math.floor(Math.random() * notificationTypes.length)];
-        
-        const newNotification = {
-          id: Date.now().toString(),
-          title: randomType.title,
-          message: randomType.message,
-          type: randomType.type,
-          time: new Date(),
-          read: false,
-          link: randomType.link
-        };
-        
-        setNotifications(prev => {
-          const updated = [...prev, newNotification];
-          localStorage.setItem('notifications', JSON.stringify(updated));
-          return updated;
-        });
-        
-        toast({
-          title: randomType.title,
-          description: randomType.message,
-        });
+        addNotification(randomType);
       }
     }, 60000); // Check once per minute
 
@@ -119,7 +160,7 @@ const NotificationSystem = () => {
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, []);
+  }, [addNotification, notifications.length]);
 
   const markAsRead = (id: string) => {
     setNotifications(prev => {
@@ -161,6 +202,19 @@ const NotificationSystem = () => {
     return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
   };
 
+  const getNotificationTypeStyles = (type: string) => {
+    switch (type) {
+      case 'success':
+        return 'bg-green-50 border-green-200';
+      case 'warning':
+        return 'bg-yellow-50 border-yellow-200';
+      case 'error':
+        return 'bg-red-50 border-red-200';
+      default:
+        return 'bg-guardian-50 border-guardian-200';
+    }
+  };
+
   return (
     <div className="relative z-50">
       <button 
@@ -174,7 +228,7 @@ const NotificationSystem = () => {
           <Bell size={20} />
         )}
         {hasUnread && (
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
         )}
       </button>
       
@@ -196,9 +250,9 @@ const NotificationSystem = () => {
                     e.stopPropagation();
                     markAllAsRead();
                   }}
-                  className="text-xs text-guardian-600 hover:text-guardian-800"
+                  className="text-xs text-guardian-600 hover:text-guardian-800 flex items-center"
                 >
-                  Mark all as read
+                  <Check size={12} className="mr-1" /> Mark all as read
                 </button>
               )}
             </div>
@@ -217,7 +271,7 @@ const NotificationSystem = () => {
                         key={notification.id}
                         onClick={() => handleNotificationClick(notification)}
                         className={`p-4 border-b border-border cursor-pointer transition-colors ${
-                          notification.read ? 'bg-white' : 'bg-guardian-50'
+                          notification.read ? 'bg-white' : getNotificationTypeStyles(notification.type)
                         } hover:bg-muted/20`}
                       >
                         <div className="flex justify-between items-start mb-1">
@@ -231,6 +285,13 @@ const NotificationSystem = () => {
                         <p className="text-sm text-muted-foreground">
                           {notification.message}
                         </p>
+                        {notification.link && (
+                          <div className="flex justify-end mt-2">
+                            <span className="text-xs text-guardian-600 flex items-center">
+                              View details <ArrowRight size={10} className="ml-1" />
+                            </span>
+                          </div>
+                        )}
                       </div>
                     ))
                   }
