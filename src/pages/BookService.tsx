@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
@@ -7,7 +6,7 @@ import Button from '@/components/ui/Button';
 import AnimatedCard from '@/components/ui/AnimatedCard';
 import { 
   CheckCircle, Calendar, Clock, MapPin, Info, 
-  ArrowRight, ArrowLeft, Edit, AlertCircle 
+  ArrowRight, ArrowLeft, Edit, AlertCircle, CreditCard, Smartphone
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { format, addDays } from 'date-fns';
@@ -26,6 +25,8 @@ const BookService = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [servicePrice, setServicePrice] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [upiId, setUpiId] = useState('');
   
   // Get today's date and the next 6 days
   const generateDates = () => {
@@ -203,6 +204,8 @@ const BookService = () => {
         caregiverId: selectedCaregiverId,
         address: address,
         totalPrice: totalPrice,
+        paymentMethod: paymentMethod,
+        upiId: paymentMethod === 'upi' ? upiId : '',
         status: 'booked'
       };
       
@@ -551,7 +554,12 @@ const BookService = () => {
               
               <div className="space-y-4 mb-4">
                 <h4 className="font-medium">Payment Method</h4>
-                <div className="border rounded-lg p-3 flex items-center bg-guardian-50 border-guardian-500">
+                <div 
+                  className={`border rounded-lg p-3 flex items-center mb-2 cursor-pointer ${
+                    paymentMethod === 'cash' ? 'bg-guardian-50 border-guardian-500' : 'hover:bg-guardian-50/50'
+                  }`}
+                  onClick={() => setPaymentMethod('cash')}
+                >
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
                     <span className="text-primary font-bold text-xs">₹</span>
                   </div>
@@ -559,7 +567,51 @@ const BookService = () => {
                     <p className="text-sm font-medium">Cash on Delivery</p>
                     <p className="text-xs text-muted-foreground">Pay after service completion</p>
                   </div>
-                  <CheckCircle size={16} className="text-guardian-500 ml-auto" />
+                  {paymentMethod === 'cash' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
+                </div>
+                
+                <div 
+                  className={`border rounded-lg p-3 flex items-center cursor-pointer ${
+                    paymentMethod === 'upi' ? 'bg-guardian-50 border-guardian-500' : 'hover:bg-guardian-50/50'
+                  }`}
+                  onClick={() => setPaymentMethod('upi')}
+                >
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                    <Smartphone size={16} className="text-primary" />
+                  </div>
+                  <div className="flex-grow">
+                    <p className="text-sm font-medium">UPI Payment</p>
+                    <p className="text-xs text-muted-foreground">Pay using any UPI app</p>
+                    
+                    {paymentMethod === 'upi' && (
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          placeholder="Enter your UPI ID (e.g. name@bank)"
+                          value={upiId}
+                          onChange={(e) => setUpiId(e.target.value)}
+                          className="w-full border border-input rounded-md px-3 py-2 text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {paymentMethod === 'upi' && <CheckCircle size={16} className="text-guardian-500 ml-3" />}
+                </div>
+                
+                <div 
+                  className={`border rounded-lg p-3 flex items-center cursor-pointer ${
+                    paymentMethod === 'card' ? 'bg-guardian-50 border-guardian-500' : 'hover:bg-guardian-50/50'
+                  }`}
+                  onClick={() => setPaymentMethod('card')}
+                >
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                    <CreditCard size={16} className="text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Credit/Debit Card</p>
+                    <p className="text-xs text-muted-foreground">Pay with your card</p>
+                  </div>
+                  {paymentMethod === 'card' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
                 </div>
               </div>
               
@@ -585,8 +637,9 @@ const BookService = () => {
                 fullWidth 
                 isLoading={isSubmitting}
                 onClick={handleConfirmBooking}
+                disabled={paymentMethod === 'upi' && !upiId}
               >
-                {!isSubmitting && <CheckCircle size={18} className="ml-2" />}
+                {!isSubmitting && <CheckCircle size={18} className="mr-2" />}
                 Confirm Booking
               </Button>
               <Button 

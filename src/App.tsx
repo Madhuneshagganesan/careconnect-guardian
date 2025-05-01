@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { Toaster } from '@/components/ui/toaster';
 import Index from '@/pages/Index';
@@ -26,6 +26,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/about-us" element={<AboutUs />} />
+            {/* Redirect /about to /about-us */}
+            <Route path="/about" element={<Navigate to="/about-us" replace />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/services" element={<Services />} />
             <Route path="/caregivers" element={<Caregivers />} />
