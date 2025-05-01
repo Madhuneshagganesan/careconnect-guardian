@@ -2,10 +2,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
+import { toast } from '@/components/ui/use-toast';
 
-// Initialize mapbox token as null
+// Initialize mapbox token
 const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbDZ2MDZ6dDYwNnljM2JwZXRydXlvdnBnIn0.boA9CJ9_IWvrIWlYxzDdGg';
 
 interface MapPosition {
@@ -32,6 +33,10 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     // Try to get token from localStorage first
     return localStorage.getItem('mapbox_token') || DEFAULT_MAPBOX_TOKEN;
   });
+  
+  // Add simulated movement state
+  const [simulationActive, setSimulationActive] = useState(false);
+  const simulationInterval = useRef<NodeJS.Timeout | null>(null);
   
   const initializeMap = () => {
     if (!mapContainer.current) return;
@@ -95,37 +100,7 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
             .setPopup(new mapboxgl.Popup().setHTML('<p class="font-medium">Your Caregiver</p>'));
           
           // Add a line between caregiver and destination
-          map.current.addSource('route', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: [
-                  [caregiverPosition.lng, caregiverPosition.lat],
-                  [destination.lng, destination.lat]
-                ]
-              }
-            }
-          });
-          
-          // Add the route line layer
-          map.current.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#5C69D1',
-              'line-width': 4,
-              'line-opacity': 0.7,
-              'line-dasharray': [1, 1]
-            }
-          });
+          addRouteLine(caregiverPosition);
           
           // Fit bounds to show both markers
           const bounds = new mapboxgl.LngLatBounds()
@@ -139,6 +114,12 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
           
           // Hide loading indicator
           setLoading(false);
+
+          // Show a success toast when map is loaded
+          toast({
+            title: "Map loaded successfully",
+            description: "You can now track your caregiver in real-time",
+          });
         } catch (err) {
           console.error('Error setting up markers and route:', err);
           setMapError('Failed to set up map markers');
@@ -158,11 +139,126 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
     }
   };
   
+  // Function to add/update the route line
+  const addRouteLine = (currentPosition: MapPosition) => {
+    if (!map.current) return;
+    
+    // Remove existing route if it exists
+    if (map.current.getSource('route')) {
+      map.current.removeLayer('route');
+      map.current.removeSource('route');
+    }
+    
+    // Add the updated route
+    map.current.addSource('route', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [currentPosition.lng, currentPosition.lat],
+            [destination.lng, destination.lat]
+          ]
+        }
+      }
+    });
+    
+    // Add the route line layer
+    map.current.addLayer({
+      id: 'route',
+      type: 'line',
+      source: 'route',
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round'
+      },
+      paint: {
+        'line-color': '#5C69D1',
+        'line-width': 4,
+        'line-opacity': 0.7,
+        'line-dasharray': [1, 1]
+      }
+    });
+  };
+  
+  // Function to simulate caregiver movement
+  const startSimulation = () => {
+    if (!map.current || !caregiverMarker.current) return;
+    
+    setSimulationActive(true);
+    toast({
+      title: "Live tracking activated",
+      description: "Your caregiver is now moving toward you",
+    });
+    
+    // Calculate direction from caregiver to destination
+    const dx = destination.lng - caregiverPosition.lng;
+    const dy = destination.lat - caregiverPosition.lat;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Number of steps to reach destination (simulate ~3 minutes of movement)
+    const totalSteps = 30;
+    const stepX = dx / totalSteps;
+    const stepY = dy / totalSteps;
+    
+    let currentStep = 0;
+    let currentPosition = { ...caregiverPosition };
+    
+    // Update caregiver position every 6 seconds
+    simulationInterval.current = setInterval(() => {
+      if (currentStep >= totalSteps) {
+        stopSimulation();
+        toast({
+          title: "Caregiver has arrived!",
+          description: "Your caregiver has reached your location",
+        });
+        return;
+      }
+      
+      // Update position
+      currentPosition = {
+        lng: currentPosition.lng + stepX,
+        lat: currentPosition.lat + stepY
+      };
+      
+      // Update marker position
+      caregiverMarker.current?.setLngLat([currentPosition.lng, currentPosition.lat]);
+      
+      // Update route line
+      addRouteLine(currentPosition);
+      
+      currentStep++;
+      
+      // Every 3rd step, show an update notification
+      if (currentStep % 3 === 0) {
+        const stepsRemaining = totalSteps - currentStep;
+        const minutesRemaining = Math.round(stepsRemaining * 0.1 * 10) / 10;
+        
+        toast({
+          title: "Caregiver update",
+          description: `Caregiver is ${minutesRemaining.toFixed(1)} minutes away from your location`,
+        });
+      }
+    }, 6000); // Update every 6 seconds
+  };
+  
+  const stopSimulation = () => {
+    if (simulationInterval.current) {
+      clearInterval(simulationInterval.current);
+      simulationInterval.current = null;
+    }
+    setSimulationActive(false);
+  };
+  
   useEffect(() => {
     initializeMap();
     
     // Clean up on unmount
     return () => {
+      stopSimulation();
+      
       // Safely remove markers first
       if (caregiverMarker.current) {
         caregiverMarker.current.remove();
@@ -192,6 +288,10 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
       // Save to localStorage
       localStorage.setItem('mapbox_token', newToken);
       setMapboxToken(newToken);
+      toast({
+        title: "Mapbox token updated",
+        description: "Your map will now reload with the new token",
+      });
     }
   };
   
@@ -205,6 +305,29 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
           </div>
         </div>
       )}
+      
+      {/* Live tracking controls */}
+      {!loading && !mapError && !simulationActive && (
+        <div className="absolute bottom-4 left-0 right-0 z-10 flex justify-center">
+          <Button 
+            onClick={startSimulation} 
+            className="bg-guardian-600 hover:bg-guardian-700 text-white flex items-center gap-2 shadow-lg"
+          >
+            <MapPin size={16} />
+            Start Live Tracking
+          </Button>
+        </div>
+      )}
+      
+      {simulationActive && (
+        <div className="absolute bottom-4 left-0 right-0 z-10 flex justify-center">
+          <div className="bg-guardian-50 border border-guardian-200 rounded-full px-4 py-2 text-sm font-medium text-guardian-800 flex items-center gap-2 shadow-lg animate-pulse">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Live tracking active
+          </div>
+        </div>
+      )}
+      
       {mapError && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
           <div className="flex flex-col items-center p-4 max-w-md">
@@ -228,6 +351,7 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
           </div>
         </div>
       )}
+      
       <div ref={mapContainer} className="w-full h-full" />
     </div>
   );

@@ -35,6 +35,24 @@ const AboutUs = () => {
     },
   ];
 
+  const founders = [
+    {
+      name: "Madhunesha Ganesan",
+      role: "Co-Founder & CEO",
+      bio: "15+ years experience in healthcare administration and technology"
+    },
+    {
+      name: "Mounamithra",
+      role: "Co-Founder & CTO",
+      bio: "Expert in healthcare technology with a focus on accessibility"
+    },
+    {
+      name: "Kanimozhi",
+      role: "Co-Founder & COO",
+      bio: "Specialized in operations and caregiving service management"
+    }
+  ];
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -88,7 +106,7 @@ const AboutUs = () => {
             </div>
           </section>
 
-          {/* Team Section (simplified for demo) */}
+          {/* Team Section (with updated founders) */}
           <section className="mb-20">
             <div className="max-w-3xl mx-auto text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Leadership Team</h2>
@@ -98,13 +116,13 @@ const AboutUs = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[1, 2, 3].map((member) => (
-                <div key={member} className="bg-white p-6 rounded-xl border border-border shadow-sm text-center">
+              {founders.map((founder, index) => (
+                <div key={index} className="bg-white p-6 rounded-xl border border-border shadow-sm text-center">
                   <div className="w-24 h-24 rounded-full bg-guardian-100 mx-auto mb-4"></div>
-                  <h3 className="text-xl font-medium">Jane Smith</h3>
-                  <p className="text-guardian-500 mb-2">Co-Founder & CEO</p>
+                  <h3 className="text-xl font-medium">{founder.name}</h3>
+                  <p className="text-guardian-500 mb-2">{founder.role}</p>
                   <p className="text-muted-foreground text-sm">
-                    15+ years experience in healthcare administration and technology
+                    {founder.bio}
                   </p>
                 </div>
               ))}
