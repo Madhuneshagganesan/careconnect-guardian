@@ -9,7 +9,7 @@ import { toast } from '@/components/ui/use-toast';
 
 export const useVoiceAssistantState = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [autoSpeaking, setAutoSpeaking] = useState(false);
+  const [autoSpeaking, setAutoSpeaking] = useState(true); // Auto-speak enabled by default
   const location = useLocation();
   const currentPage = location.pathname;
   
@@ -21,7 +21,9 @@ export const useVoiceAssistantState = () => {
     toggleListening, 
     stopListening, 
     setTranscript,
-    isSupported
+    isSupported,
+    detectedLanguage,
+    setDetectedLanguage
   } = useSpeechRecognition();
   
   const { 
@@ -30,7 +32,8 @@ export const useVoiceAssistantState = () => {
     stopSpeaking,
     voices,
     currentVoice,
-    setVoice
+    setVoice,
+    getVoicesForLanguage
   } = useSpeechSynthesis();
   
   const { 
@@ -48,7 +51,7 @@ export const useVoiceAssistantState = () => {
     transcript, 
     setTranscript, 
     stopListening, 
-    speakResponse, 
+    (text) => speakResponse(text, detectedLanguage), // Pass the detected language for response
     addMessageToHistory,
     currentPage
   );
@@ -80,9 +83,9 @@ export const useVoiceAssistantState = () => {
   // Auto-speak responses when enabled
   useEffect(() => {
     if (autoSpeaking && response && !isSpeaking && !isLoading) {
-      speakResponse(response);
+      speakResponse(response, detectedLanguage);
     }
-  }, [response, autoSpeaking, isSpeaking, isLoading, speakResponse]);
+  }, [response, autoSpeaking, isSpeaking, isLoading, speakResponse, detectedLanguage]);
   
   // Automatically process voice commands after a short delay
   useEffect(() => {
@@ -118,8 +121,15 @@ export const useVoiceAssistantState = () => {
         setResponse('');
       }, 500);
       return () => clearTimeout(timeoutId);
+    } else {
+      // When opening, start listening automatically
+      setTimeout(() => {
+        if (!isListening) {
+          toggleListening();
+        }
+      }, 500);
     }
-  }, [isOpen, clearHistory, setResponse]);
+  }, [isOpen, clearHistory, setResponse, isListening, toggleListening]);
 
   return {
     isOpen,
@@ -140,6 +150,8 @@ export const useVoiceAssistantState = () => {
     stopSpeaking,
     voices,
     currentVoice,
-    setVoice
+    setVoice,
+    detectedLanguage,
+    setDetectedLanguage
   };
 };

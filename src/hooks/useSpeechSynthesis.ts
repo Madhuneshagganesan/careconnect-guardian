@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
 
@@ -6,6 +5,7 @@ export const useSpeechSynthesis = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [currentVoice, setCurrentVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [voicesByLang, setVoicesByLang] = useState<Record<string, SpeechSynthesisVoice[]>>({});
   const synthRef = useRef<SpeechSynthesis | null>(null);
   
   useEffect(() => {
@@ -16,6 +16,17 @@ export const useSpeechSynthesis = () => {
       const loadVoices = () => {
         const availableVoices = synthRef.current?.getVoices() || [];
         setVoices(availableVoices);
+        
+        // Group voices by language
+        const voiceMap: Record<string, SpeechSynthesisVoice[]> = {};
+        availableVoices.forEach(voice => {
+          const langCode = voice.lang.split('-')[0];
+          if (!voiceMap[langCode]) {
+            voiceMap[langCode] = [];
+          }
+          voiceMap[langCode].push(voice);
+        });
+        setVoicesByLang(voiceMap);
         
         // Set a default voice (preferably English)
         if (availableVoices.length > 0) {
@@ -39,7 +50,7 @@ export const useSpeechSynthesis = () => {
     };
   }, []);
   
-  const speakResponse = (text: string) => {
+  const speakResponse = (text: string, language?: string) => {
     if (!synthRef.current) {
       toast({
         title: "Not Supported",
@@ -55,8 +66,20 @@ export const useSpeechSynthesis = () => {
     setIsSpeaking(true);
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Set the voice if one is selected
-    if (currentVoice) {
+    // If language is specified, try to find a voice for that language
+    if (language) {
+      const langCode = language.split('-')[0];
+      const languageVoices = voicesByLang[langCode];
+      
+      if (languageVoices && languageVoices.length > 0) {
+        utterance.voice = languageVoices[0]; // Use the first voice of that language
+        utterance.lang = language;
+      } else if (currentVoice) {
+        utterance.voice = currentVoice;
+      }
+    } 
+    // Otherwise, use the selected voice
+    else if (currentVoice) {
       utterance.voice = currentVoice;
     }
     
@@ -85,12 +108,18 @@ export const useSpeechSynthesis = () => {
     setCurrentVoice(voice);
   };
   
+  // Get available voices for a specific language
+  const getVoicesForLanguage = (langCode: string): SpeechSynthesisVoice[] => {
+    return voicesByLang[langCode] || [];
+  };
+  
   return {
     isSpeaking,
     speakResponse,
     stopSpeaking,
     voices,
     currentVoice,
-    setVoice
+    setVoice,
+    getVoicesForLanguage
   };
 };

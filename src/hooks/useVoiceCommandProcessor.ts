@@ -15,6 +15,7 @@ export const useVoiceCommandProcessor = (
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState('');
+  const [retryAttempt, setRetryAttempt] = useState(0);
   
   useEffect(() => {
     // Listen for the custom closeVoiceAssistant event
@@ -52,13 +53,34 @@ export const useVoiceCommandProcessor = (
       );
       
       setResponse(responseText);
+      setRetryAttempt(0); // Reset retry counter on success
     } catch (error) {
       console.error('Error processing voice command', error);
-      toast({
-        title: "Processing Error",
-        description: "There was an error processing your request. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Implement retry mechanism
+      if (retryAttempt < 2) {
+        setRetryAttempt(prev => prev + 1);
+        
+        toast({
+          title: "Retrying",
+          description: "Having trouble processing your request. Trying again...",
+          variant: "default",
+        });
+        
+        // Small delay before retry
+        setTimeout(() => processCommand(), 1000);
+      } else {
+        toast({
+          title: "Processing Error",
+          description: "There was an error processing your request. Please try again with different wording.",
+          variant: "destructive",
+        });
+        
+        // Add error message to conversation history
+        addMessageToHistory('assistant', "I'm sorry, I had trouble understanding that. Could you try rephrasing your request?");
+        setResponse("I'm sorry, I had trouble understanding that. Could you try rephrasing your request?");
+        setRetryAttempt(0); // Reset counter
+      }
     } finally {
       setIsLoading(false);
     }

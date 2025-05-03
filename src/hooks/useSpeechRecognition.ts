@@ -7,7 +7,9 @@ export const useSpeechRecognition = () => {
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [isSupported, setIsSupported] = useState(false);
+  const [detectedLanguage, setDetectedLanguage] = useState('en-US');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const restartTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
@@ -15,7 +17,7 @@ export const useSpeechRecognition = () => {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-US';  // Default to English
+      recognitionRef.current.lang = detectedLanguage;
       
       recognitionRef.current.onresult = (event) => {
         let finalTranscript = '';
@@ -24,6 +26,21 @@ export const useSpeechRecognition = () => {
         for (let i = 0; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
             finalTranscript += event.results[i][0].transcript + ' ';
+            
+            // Try to detect language from the transcript content
+            if (finalTranscript.length > 10) {
+              try {
+                const detectedLang = detectLanguageFromText(finalTranscript);
+                if (detectedLang && detectedLang !== detectedLanguage) {
+                  setDetectedLanguage(detectedLang);
+                  if (recognitionRef.current) {
+                    recognitionRef.current.lang = detectedLang;
+                  }
+                }
+              } catch (error) {
+                console.error('Language detection error:', error);
+              }
+            }
           } else {
             currentInterim += event.results[i][0].transcript;
           }
@@ -52,20 +69,23 @@ export const useSpeechRecognition = () => {
         } else if (event.error === 'no-speech') {
           // No need to show an error for no speech detected
           console.log('No speech detected');
+        } else if (event.error === 'aborted') {
+          console.log('Recognition aborted - attempting restart');
+          restartRecognition();
         } else {
-          setIsListening(false);
           toast({
             title: "Voice Recognition Error",
-            description: `Error: ${event.error}. Please try again.`,
+            description: `Error: ${event.error}. Attempting to restart.`,
             variant: "destructive",
           });
+          restartRecognition();
         }
       };
 
       recognitionRef.current.onend = () => {
         // Only restart if we're still meant to be listening
         if (isListening) {
-          recognitionRef.current?.start();
+          restartRecognition();
         }
       };
 
@@ -76,8 +96,56 @@ export const useSpeechRecognition = () => {
       if (recognitionRef.current && isListening) {
         recognitionRef.current.stop();
       }
+      if (restartTimeoutRef.current) {
+        clearTimeout(restartTimeoutRef.current);
+      }
     };
-  }, [isListening]);
+  }, [isListening, detectedLanguage]);
+  
+  const restartRecognition = () => {
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current);
+    }
+    
+    restartTimeoutRef.current = window.setTimeout(() => {
+      if (recognitionRef.current && isListening) {
+        try {
+          recognitionRef.current.start();
+        } catch (error) {
+          console.error('Error restarting speech recognition:', error);
+        }
+      }
+    }, 300);
+  };
+  
+  const detectLanguageFromText = (text: string): string => {
+    // Simple language detection based on common words
+    // This is a very simplified version; in a real app, use a proper language detection library
+    const text_lower = text.toLowerCase();
+    
+    // Spanish detection
+    if (/(?:hola|gracias|buenos días|cómo estás|qué tal|por favor|de nada)/i.test(text_lower)) {
+      return 'es-ES';
+    }
+    
+    // French detection
+    if (/(?:bonjour|merci|comment ça va|s'il vous plaît|de rien|au revoir)/i.test(text_lower)) {
+      return 'fr-FR';
+    }
+    
+    // German detection
+    if (/(?:hallo|danke|guten tag|wie geht es|bitte|auf wiedersehen)/i.test(text_lower)) {
+      return 'de-DE';
+    }
+    
+    // Hindi detection
+    if (/(?:नमस्ते|धन्यवाद|कैसे हो|कृपया|अलविदा)/i.test(text_lower)) {
+      return 'hi-IN';
+    }
+    
+    // Default to English if no match
+    return 'en-US';
+  };
   
   const startListening = () => {
     if (!recognitionRef.current) {
@@ -90,6 +158,7 @@ export const useSpeechRecognition = () => {
     }
     
     try {
+      recognitionRef.current.lang = detectedLanguage;
       recognitionRef.current.start();
       setIsListening(true);
       setTranscript('');
@@ -115,6 +184,11 @@ export const useSpeechRecognition = () => {
     setIsListening(false);
     // Clear interim transcript when stopping
     setInterimTranscript('');
+    
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
   };
 
   const toggleListening = () => {
@@ -134,5 +208,7 @@ export const useSpeechRecognition = () => {
     toggleListening,
     setTranscript,
     isSupported,
+    detectedLanguage,
+    setDetectedLanguage,
   };
 };

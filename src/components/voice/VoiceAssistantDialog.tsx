@@ -22,6 +22,8 @@ interface VoiceAssistantDialogProps {
   voices: SpeechSynthesisVoice[];
   currentVoice: SpeechSynthesisVoice | null;
   setVoice: (voice: SpeechSynthesisVoice) => void;
+  detectedLanguage?: string;
+  setDetectedLanguage?: (lang: string) => void;
 }
 
 export const VoiceAssistantDialog: React.FC<VoiceAssistantDialogProps> = ({
@@ -42,12 +44,14 @@ export const VoiceAssistantDialog: React.FC<VoiceAssistantDialogProps> = ({
   setAutoSpeaking,
   voices,
   currentVoice,
-  setVoice
+  setVoice,
+  detectedLanguage,
+  setDetectedLanguage
 }) => {
   if (!isOpen) return null;
   
   return (
-    <AlertDialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm border border-guardian-100/50 shadow-lg rounded-xl">
+    <AlertDialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm border border-purple-100/50 shadow-lg rounded-xl">
       <VoiceAssistantUI
         isOpen={isOpen}
         setIsOpen={setIsOpen}
@@ -67,6 +71,8 @@ export const VoiceAssistantDialog: React.FC<VoiceAssistantDialogProps> = ({
         voices={voices}
         currentVoice={currentVoice}
         setVoice={setVoice}
+        detectedLanguage={detectedLanguage}
+        setDetectedLanguage={setDetectedLanguage}
       />
     </AlertDialogContent>
   );

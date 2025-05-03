@@ -90,6 +90,46 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(148, 163, 184, 0.7);
   }
+
+  /* Voice Assistant specific utilities */
+  .voice-assistant-button {
+    @apply fixed bottom-6 right-6 rounded-full shadow-lg w-16 h-16 z-[9999];
+    @apply bg-gradient-to-b from-purple-500 to-violet-700;
+    @apply hover:from-purple-600 hover:to-violet-800;
+    @apply transition-all duration-300 border-2 border-white/20 backdrop-blur-sm;
+  }
+
+  .voice-pulse {
+    animation: voice-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes voice-pulse {
+    0%, 100% {
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.15;
+      transform: scale(1.05);
+    }
+  }
+
+  .voice-assistant-dialog {
+    @apply bg-white/95 backdrop-blur-sm border border-purple-100/50 shadow-lg rounded-xl;
+    @apply max-w-md mx-auto;
+  }
+
+  .voice-message {
+    @apply p-4 transition-all shadow-sm hover:shadow-md rounded-2xl;
+  }
+
+  .voice-user-message {
+    @apply bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200/50 ml-4 mr-2;
+  }
+
+  .voice-assistant-message {
+    @apply bg-gradient-to-r from-purple-50 to-pink-50/50 border-purple-200/30 mr-4 ml-2;
+  }
 }
 
 /* Animations and transitions */
@@ -136,4 +176,13 @@
 
 #root {
   @apply w-full max-w-full p-0 m-0;
+}
+
+/* Improved voice assistant styles */
+.voice-gradient-text {
+  @apply bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent;
+}
+
+.voice-btn-gradient {
+  @apply bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700;
 }

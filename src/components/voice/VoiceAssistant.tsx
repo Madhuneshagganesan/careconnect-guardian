@@ -25,7 +25,9 @@ const VoiceAssistant = () => {
     stopSpeaking,
     voices,
     currentVoice,
-    setVoice
+    setVoice,
+    detectedLanguage,
+    setDetectedLanguage
   } = useVoiceAssistantState();
   
   return (
@@ -50,6 +52,8 @@ const VoiceAssistant = () => {
           voices={voices}
           currentVoice={currentVoice}
           setVoice={setVoice}
+          detectedLanguage={detectedLanguage}
+          setDetectedLanguage={setDetectedLanguage}
         />
       </AlertDialog>
       
@@ -58,24 +62,6 @@ const VoiceAssistant = () => {
         setIsOpen={setIsOpen}
         isListening={isListening}
       />
-      
-      {/* Non-dialog mode for UI rendering in other contexts */}
-      {!isOpen && (
-        <VoiceAssistantUI
-          isOpen={false}
-          setIsOpen={setIsOpen}
-          isListening={isListening}
-          toggleListening={toggleListening}
-          transcript={transcript}
-          conversationHistory={conversationHistory}
-          isLoading={isLoading}
-          isSpeaking={isSpeaking}
-          response={response}
-          processCommand={processCommand}
-          speakResponse={speakResponse}
-          stopSpeaking={stopSpeaking}
-        />
-      )}
     </>
   );
 };
