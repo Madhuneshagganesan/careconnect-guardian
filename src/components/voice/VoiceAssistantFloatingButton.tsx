@@ -15,7 +15,7 @@ export const VoiceAssistantFloatingButton: React.FC<VoiceAssistantFloatingButton
   return (
     <Button 
       onClick={() => setIsOpen(true)} 
-      className="fixed bottom-6 right-6 rounded-full shadow-lg w-14 h-14 z-50 bg-guardian-500 hover:bg-guardian-600"
+      className="fixed bottom-6 right-6 rounded-full shadow-lg w-14 h-14 z-[9999] bg-guardian-500 hover:bg-guardian-600"
       size="icon"
       variant="default"
       aria-label="Open voice assistant"

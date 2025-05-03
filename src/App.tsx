@@ -17,6 +17,7 @@ import NotFound from '@/pages/NotFound';
 import Profile from '@/pages/Profile';
 import { AuthProvider } from '@/providers/AuthProvider'; 
 import { LiveTrackingProvider } from '@/providers/LiveTrackingProvider';
+import VoiceAssistant from '@/components/voice/VoiceAssistant';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
+          <VoiceAssistant />
         </LiveTrackingProvider>
       </AuthProvider>
     </Router>
