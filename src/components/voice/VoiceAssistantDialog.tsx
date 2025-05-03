@@ -47,7 +47,7 @@ export const VoiceAssistantDialog: React.FC<VoiceAssistantDialogProps> = ({
   if (!isOpen) return null;
   
   return (
-    <AlertDialogContent className="sm:max-w-md">
+    <AlertDialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm border border-guardian-100/50 shadow-lg rounded-xl">
       <VoiceAssistantUI
         isOpen={isOpen}
         setIsOpen={setIsOpen}

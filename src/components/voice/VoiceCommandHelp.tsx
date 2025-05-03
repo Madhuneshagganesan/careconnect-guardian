@@ -79,34 +79,37 @@ const VoiceCommandHelp = () => {
         <Button 
           variant="outline" 
           size="icon" 
-          className="h-8 w-8 rounded-full"
+          className="h-8 w-8 rounded-full border-guardian-200 hover:bg-guardian-50/50 bg-white/70"
           aria-label="Voice command help"
         >
-          <HelpCircle className="h-4 w-4" />
+          <HelpCircle className="h-4 w-4 text-guardian-600" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80">
-        <div className="space-y-2">
-          <h3 className="font-medium text-sm">Voice Command Help</h3>
-          <p className="text-xs text-muted-foreground">
+      <PopoverContent className="w-80 p-0 overflow-hidden bg-white/95 backdrop-blur-sm border border-guardian-100/60 shadow-lg rounded-lg">
+        <div className="bg-gradient-to-r from-guardian-100 to-guardian-50/50 p-3 border-b border-guardian-100/50">
+          <h3 className="font-medium text-guardian-800">Voice Command Help</h3>
+          <p className="text-xs text-guardian-600 mt-1">
             {pageContext.helpText}
           </p>
-          
-          <ScrollArea className="h-72 rounded-md">
-            <div className="space-y-4 px-1 py-2">
-              {commandCategories.map((item, index) => (
-                <div key={index}>
-                  <h4 className="mb-1 text-xs font-medium text-primary">{item.category}</h4>
-                  <ul className="list-disc pl-4 space-y-1">
-                    {item.examples.map((example, i) => (
-                      <li key={i} className="text-xs">{example}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
         </div>
+        
+        <ScrollArea className="h-72 px-3 py-2 custom-scrollbar">
+          <div className="space-y-4">
+            {commandCategories.map((item, index) => (
+              <div key={index} className="pb-2 last:pb-0">
+                <h4 className="mb-2 text-xs font-semibold text-guardian-700 bg-guardian-50 p-1.5 rounded-md">{item.category}</h4>
+                <ul className="grid grid-cols-1 gap-1">
+                  {item.examples.map((example, i) => (
+                    <li key={i} className="text-xs flex items-center">
+                      <span className="inline-block w-1.5 h-1.5 bg-guardian-300 rounded-full mr-2"></span>
+                      <span className="text-muted-foreground">{example}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   );

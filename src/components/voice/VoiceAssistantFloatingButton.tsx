@@ -15,18 +15,23 @@ export const VoiceAssistantFloatingButton: React.FC<VoiceAssistantFloatingButton
   return (
     <Button 
       onClick={() => setIsOpen(true)} 
-      className="fixed bottom-6 right-6 rounded-full shadow-lg w-14 h-14 z-[9999] bg-guardian-500 hover:bg-guardian-600"
+      className="fixed bottom-6 right-6 rounded-full shadow-lg w-16 h-16 z-[9999] bg-gradient-to-tr from-guardian-600 to-guardian-400 hover:from-guardian-700 hover:to-guardian-500 transition-all duration-300 border-2 border-white/20 backdrop-blur-sm"
       size="icon"
       variant="default"
       aria-label="Open voice assistant"
     >
-      <Mic size={24} className="text-white" />
-      {isListening && (
-        <span className="absolute top-0 right-0 flex h-3 w-3" aria-hidden="true">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-        </span>
-      )}
+      <div className="relative flex items-center justify-center w-full h-full">
+        <Mic size={24} className="text-white filter drop-shadow-md" />
+        {isListening && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-30"></span>
+            <span className="absolute top-2 right-2 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            </span>
+          </div>
+        )}
+      </div>
       <span className="sr-only">Open voice assistant</span>
     </Button>
   );
