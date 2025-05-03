@@ -19,9 +19,16 @@ export function useFavoriteCaregivers() {
         const storedFavorites = localStorage.getItem(storageKey);
         
         if (storedFavorites) {
-          const favoriteIds = JSON.parse(storedFavorites);
-          console.log("Fetched favorite caregivers from localStorage for user:", user.id, favoriteIds);
-          setFavorites(favoriteIds);
+          try {
+            const favoriteIds = JSON.parse(storedFavorites);
+            console.log("Fetched favorite caregivers from localStorage for user:", user.id, favoriteIds);
+            setFavorites(Array.isArray(favoriteIds) ? favoriteIds : []);
+          } catch (error) {
+            console.error('Error parsing favorites from localStorage:', error);
+            setFavorites([]);
+            // Reset corrupted data
+            localStorage.setItem(storageKey, JSON.stringify([]));
+          }
         } else {
           // Initialize empty favorites for this user
           localStorage.setItem(storageKey, JSON.stringify([]));
