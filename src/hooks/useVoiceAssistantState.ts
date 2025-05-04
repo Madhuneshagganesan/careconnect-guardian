@@ -21,6 +21,7 @@ export const useVoiceAssistantState = () => {
     interimTranscript,
     toggleListening, 
     stopListening, 
+    startListening,
     setTranscript,
     isSupported,
     detectedLanguage,
@@ -48,7 +49,8 @@ export const useVoiceAssistantState = () => {
     response, 
     processCommand, 
     setResponse,
-    isProcessing: isCommandProcessing
+    isProcessing: isCommandProcessing,
+    resetCommand
   } = useVoiceCommandProcessor(
     transcript, 
     setTranscript, 
@@ -96,10 +98,14 @@ export const useVoiceAssistantState = () => {
   
   // Handle end of speech or process command when the user stops talking
   const speechPauseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTranscriptRef = useRef<string>('');
   
   useEffect(() => {
-    // If we have a transcript and we're listening, start the timer
-    if (transcript && isListening && !isLoading && !isProcessing) {
+    // Only process when there's a meaningful change in the transcript
+    if (transcript && transcript !== lastTranscriptRef.current && isListening && !isLoading && !isProcessing) {
+      // Save current transcript for comparison
+      lastTranscriptRef.current = transcript;
+      
       // Clear any existing timer
       if (speechPauseTimerRef.current) {
         clearTimeout(speechPauseTimerRef.current);
@@ -149,18 +155,23 @@ export const useVoiceAssistantState = () => {
         clearHistory();
         setResponse('');
         setTranscript('');
+        lastTranscriptRef.current = '';
+        resetCommand();
+        stopListening();
       }, 500);
       return () => clearTimeout(timeoutId);
     } else {
       // When opening, start listening automatically with a clean state
       setTimeout(() => {
         setTranscript('');
+        lastTranscriptRef.current = '';
+        resetCommand();
         if (!isListening) {
-          toggleListening();
+          startListening();
         }
       }, 500);
     }
-  }, [isOpen, clearHistory, setResponse, isListening, toggleListening, setTranscript]);
+  }, [isOpen, clearHistory, setResponse, isListening, startListening, setTranscript, resetCommand, stopListening]);
 
   // Stop any ongoing speech when component unmounts
   useEffect(() => {

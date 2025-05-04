@@ -1,5 +1,6 @@
+
 import { useState, useEffect, useRef } from 'react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/use-toast';
 
 export const useSpeechRecognition = () => {
   const [isListening, setIsListening] = useState(false);
@@ -199,6 +200,12 @@ export const useSpeechRecognition = () => {
         description: "Voice recognition is not supported in your browser.",
         variant: "destructive",
       });
+      return;
+    }
+    
+    // Don't start if already listening
+    if (isListening) {
+      console.log('Already listening, not starting again');
       return;
     }
     

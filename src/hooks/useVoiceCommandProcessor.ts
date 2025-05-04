@@ -17,6 +17,7 @@ export const useVoiceCommandProcessor = (
   const [response, setResponse] = useState('');
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
   
   useEffect(() => {
     // Listen for the custom closeVoiceAssistant event
@@ -36,10 +37,17 @@ export const useVoiceCommandProcessor = (
     // Prevent multiple simultaneous processing
     if (isProcessing || !transcript.trim()) return;
     
+    // Prevent processing the same transcript multiple times
+    if (transcript === lastProcessedTranscript) {
+      console.log('This transcript has already been processed, skipping');
+      return;
+    }
+    
     try {
       setIsProcessing(true);
       setIsLoading(true);
-      stopListening();
+      // Store the current transcript so we don't process it again
+      setLastProcessedTranscript(transcript);
       
       // Add user input to conversation history
       addMessageToHistory('user', transcript);
@@ -96,10 +104,19 @@ export const useVoiceCommandProcessor = (
         
         // Clear the transcript to allow for a new command
         setTranscript('');
+        setLastProcessedTranscript('');
         setIsLoading(false);
         setIsProcessing(false);
       }
     }
+  };
+  
+  // Function to reset the command state
+  const resetCommand = () => {
+    setIsProcessing(false);
+    setIsLoading(false);
+    setRetryAttempt(0);
+    setLastProcessedTranscript('');
   };
   
   return {
@@ -107,6 +124,7 @@ export const useVoiceCommandProcessor = (
     response,
     processCommand,
     setResponse,
-    isProcessing
+    isProcessing,
+    resetCommand
   };
 };
