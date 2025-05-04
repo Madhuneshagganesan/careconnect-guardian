@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 
 export interface Service {
@@ -80,6 +79,12 @@ const useBookingState = () => {
       title: 'Companionship',
       description: 'Social engagement, conversation, and activities',
       price: 250
+    },
+    {
+      id: 'full-day-help',
+      title: 'Full Day Help',
+      description: 'Comprehensive assistance for the entire day, including all basic services',
+      price: 450
     }
   ];
   

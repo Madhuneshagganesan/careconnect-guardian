@@ -186,7 +186,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
               <div className="flex gap-3 w-full sm:w-auto">
                 <Button
                   variant={isListening ? "destructive" : "default"}
-                  className={`flex-1 ${!isListening ? "bg-purple-500 hover:bg-purple-600" : ""}`}
+                  className={`flex-1 ${!isListening ? "bg-guardian-500 hover:bg-guardian-600 text-white" : ""}`}
                   onClick={toggleListening}
                   disabled={isLoading}
                   aria-pressed={isListening}
@@ -200,7 +200,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
                   variant="outline"
                   disabled={!transcript || isLoading}
                   onClick={processCommand}
-                  className="flex-1 border-purple-200 hover:bg-purple-50 hover:text-purple-700"
+                  className="flex-1 border-guardian-200 hover:bg-guardian-50 hover:text-guardian-700"
                   aria-label="Process command"
                 >
                   <Play className="mr-2 h-4 w-4" />
@@ -212,7 +212,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
                 <Button 
                   variant="secondary" 
                   onClick={stopSpeaking}
-                  className="bg-purple-100 hover:bg-purple-200 text-purple-700"
+                  className="bg-guardian-100 hover:bg-guardian-200 text-guardian-700"
                   aria-label="Stop speaking"
                 >
                   <Volume className="mr-2 h-4 w-4" />
@@ -222,7 +222,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
                 <Button 
                   variant="secondary" 
                   onClick={() => speakResponse(response)}
-                  className="bg-purple-100 hover:bg-purple-200 text-purple-700"
+                  className="bg-guardian-100 hover:bg-guardian-200 text-guardian-700"
                   aria-label="Speak response"
                 >
                   <Volume2 className="mr-2 h-4 w-4" />
@@ -235,7 +235,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
           <TabsContent value="settings" className="mt-0 space-y-4">
             <div className="p-4 bg-white rounded-lg border border-purple-100/50 shadow-sm">
               <h3 className="text-sm font-medium text-slate-800 mb-3 flex items-center gap-2">
-                <Speaker size={16} className="text-purple-600" />
+                <Speaker size={16} className="text-guardian-600" />
                 Voice Settings
               </h3>
               
@@ -246,7 +246,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
                     id="auto-speak" 
                     checked={isAutoSpeaking}
                     onCheckedChange={setAutoSpeaking}
-                    className="data-[state=checked]:bg-purple-500"
+                    className="data-[state=checked]:bg-guardian-500"
                   />
                 </div>
                 
@@ -255,7 +255,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
                     <Label htmlFor="voice-select" className="text-sm text-slate-600">Assistant voice</Label>
                     <select 
                       id="voice-select"
-                      className="w-full h-9 rounded-md border border-purple-200 bg-white px-3 text-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50 transition-all"
+                      className="w-full h-9 rounded-md border border-guardian-200 bg-white px-3 text-sm focus:border-guardian-300 focus:ring focus:ring-guardian-200 focus:ring-opacity-50 transition-all"
                       value={currentVoice?.name || ''}
                       onChange={(e) => {
                         const selectedVoice = voices.find(v => v.name === e.target.value);
@@ -276,7 +276,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
             
             <div className="p-4 bg-white rounded-lg border border-purple-100/50 shadow-sm">
               <h3 className="text-sm font-medium text-slate-800 mb-3 flex items-center gap-2">
-                <Languages size={16} className="text-purple-600" />
+                <Languages size={16} className="text-guardian-600" />
                 Language Settings
               </h3>
               
@@ -285,7 +285,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
                   <Label htmlFor="language-select" className="text-sm text-slate-600">Recognition language</Label>
                   <select 
                     id="language-select"
-                    className="w-full h-9 rounded-md border border-purple-200 bg-white px-3 text-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50 transition-all"
+                    className="w-full h-9 rounded-md border border-guardian-200 bg-white px-3 text-sm focus:border-guardian-300 focus:ring focus:ring-guardian-200 focus:ring-opacity-50 transition-all"
                     value={detectedLanguage}
                     onChange={(e) => setDetectedLanguage(e.target.value)}
                     aria-label="Select recognition language"
@@ -305,7 +305,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
             
             <div className="p-4 bg-white rounded-lg border border-purple-100/50 shadow-sm">
               <h3 className="text-sm font-medium text-slate-800 mb-3 flex items-center gap-2">
-                <Settings size={16} className="text-purple-600" />
+                <Settings size={16} className="text-guardian-600" />
                 Help & Information
               </h3>
               
@@ -325,13 +325,13 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
   return (
     <Button 
       onClick={() => setIsOpen(true)} 
-      className="fixed bottom-6 right-6 rounded-full shadow-lg w-16 h-16 z-[9999] bg-gradient-to-b from-purple-500 to-violet-700 hover:from-purple-600 hover:to-violet-800 transition-all duration-300 border-2 border-white/20 backdrop-blur-sm"
+      className="fixed bottom-6 right-6 rounded-full shadow-lg w-16 h-16 z-[9999] bg-gradient-to-b from-guardian-500 to-guardian-700 hover:from-guardian-600 hover:to-guardian-800 transition-all duration-300 border-2 border-white/20 backdrop-blur-sm"
       size="icon"
       variant="default"
       aria-label="Open voice assistant"
     >
       <div className="relative flex items-center justify-center w-full h-full">
-        <div className="absolute inset-0 bg-purple-500/30 rounded-full animate-pulse" style={{ animationDuration: '3s' }}></div>
+        <div className="absolute inset-0 bg-guardian-500/30 rounded-full animate-pulse" style={{ animationDuration: '3s' }}></div>
         <Mic size={24} className="text-white filter drop-shadow-md" />
         {isListening && (
           <div className="absolute inset-0 flex items-center justify-center">

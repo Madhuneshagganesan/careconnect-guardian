@@ -92,7 +92,7 @@ export const useVoiceAssistantState = () => {
   
   useEffect(() => {
     // If we have a transcript and we're listening, start the timer
-    if (transcript && isListening && !isLoading) {
+    if (transcript && isListening && !isLoading && !isProcessing) {
       // Clear any existing timer
       if (speechPauseTimer) {
         clearTimeout(speechPauseTimer);
@@ -122,6 +122,9 @@ export const useVoiceAssistantState = () => {
     }
   }, [transcript, isListening, isLoading, processCommand]);
   
+  // Track if we're processing to prevent multiple simultaneous executions
+  const [isProcessing, setIsProcessing] = useState(false);
+  
   // Let the user know the feature is ready
   useEffect(() => {
     const hasShownWelcome = sessionStorage.getItem('voiceAssistantWelcomeShown');
@@ -143,17 +146,19 @@ export const useVoiceAssistantState = () => {
       const timeoutId = setTimeout(() => {
         clearHistory();
         setResponse('');
+        setTranscript('');
       }, 500);
       return () => clearTimeout(timeoutId);
     } else {
       // When opening, start listening automatically
       setTimeout(() => {
         if (!isListening) {
+          setTranscript('');
           toggleListening();
         }
       }, 500);
     }
-  }, [isOpen, clearHistory, setResponse, isListening, toggleListening]);
+  }, [isOpen, clearHistory, setResponse, isListening, toggleListening, setTranscript]);
 
   return {
     isOpen,
@@ -176,6 +181,8 @@ export const useVoiceAssistantState = () => {
     currentVoice,
     setVoice,
     detectedLanguage,
-    setDetectedLanguage
+    setDetectedLanguage,
+    isProcessing,
+    setIsProcessing
   };
 };
