@@ -13,6 +13,7 @@ export const useVoiceAssistantState = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const location = useLocation();
   const currentPage = location.pathname;
+  const isInitializedRef = useRef(false);
   
   // Initialize hooks
   const { 
@@ -80,18 +81,23 @@ export const useVoiceAssistantState = () => {
   
   // Check if browser supports speech recognition
   useEffect(() => {
-    if (!isSupported) {
-      toast({
-        title: "Speech Recognition Not Supported",
-        description: "Your browser doesn't support speech recognition. Try using Chrome or Edge.",
-        variant: "destructive",
-      });
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
+      
+      if (!isSupported) {
+        toast({
+          title: "Speech Recognition Not Supported",
+          description: "Your browser doesn't support speech recognition. Try using Chrome or Edge.",
+          variant: "destructive",
+        });
+      }
     }
   }, [isSupported]);
   
   // Auto-speak responses when enabled
   useEffect(() => {
     if (autoSpeaking && response && !isSpeaking && !isLoading) {
+      console.log('Auto-speaking response:', response);
       speakResponse(response, detectedLanguage);
     }
   }, [response, autoSpeaking, isSpeaking, isLoading, speakResponse, detectedLanguage]);
@@ -103,6 +109,7 @@ export const useVoiceAssistantState = () => {
   useEffect(() => {
     // Only process when there's a meaningful change in the transcript
     if (transcript && transcript !== lastTranscriptRef.current && isListening && !isLoading && !isProcessing) {
+      console.log('Transcript changed, scheduling processing');
       // Save current transcript for comparison
       lastTranscriptRef.current = transcript;
       
@@ -113,7 +120,10 @@ export const useVoiceAssistantState = () => {
       
       // Set a new timer to process the command after a pause in speech
       speechPauseTimerRef.current = setTimeout(() => {
-        processCommand();
+        console.log('Processing after pause in speech');
+        if (!isProcessing && !isLoading) {
+          processCommand();
+        }
       }, 1500); // 1.5 second pause before processing
     }
     
@@ -150,6 +160,7 @@ export const useVoiceAssistantState = () => {
   // Reset conversation when dialog is opened/closed
   useEffect(() => {
     if (!isOpen) {
+      console.log('Voice dialog closed, cleaning up');
       // When closing, wait a bit in case there's audio playing
       const timeoutId = setTimeout(() => {
         clearHistory();
@@ -158,30 +169,37 @@ export const useVoiceAssistantState = () => {
         lastTranscriptRef.current = '';
         resetCommand();
         stopListening();
+        stopSpeaking();
       }, 500);
       return () => clearTimeout(timeoutId);
     } else {
+      console.log('Voice dialog opened, initializing');
       // When opening, start listening automatically with a clean state
       setTimeout(() => {
         setTranscript('');
         lastTranscriptRef.current = '';
         resetCommand();
+        
+        // Only start listening if we're not already
         if (!isListening) {
+          console.log('Starting listening on dialog open');
           startListening();
         }
       }, 500);
     }
-  }, [isOpen, clearHistory, setResponse, isListening, startListening, setTranscript, resetCommand, stopListening]);
+  }, [isOpen, clearHistory, setResponse, isListening, startListening, setTranscript, resetCommand, stopListening, stopSpeaking]);
 
   // Stop any ongoing speech when component unmounts
   useEffect(() => {
     return () => {
+      console.log('Voice assistant unmounting, cleaning up');
       stopSpeaking();
+      stopListening();
       if (speechPauseTimerRef.current) {
         clearTimeout(speechPauseTimerRef.current);
       }
     };
-  }, [stopSpeaking]);
+  }, [stopSpeaking, stopListening]);
 
   return {
     isOpen,

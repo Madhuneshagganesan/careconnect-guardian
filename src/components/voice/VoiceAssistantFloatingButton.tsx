@@ -21,7 +21,7 @@ export const VoiceAssistantFloatingButton: React.FC<VoiceAssistantFloatingButton
       aria-label="Open voice assistant"
     >
       <div className="relative flex items-center justify-center w-full h-full">
-        <div className="absolute inset-0 bg-purple-400/30 rounded-full animate-pulse" style={{ animationDuration: '3s' }}></div>
+        <div className={`absolute inset-0 ${isListening ? 'bg-purple-400/50' : 'bg-purple-400/30'} rounded-full animate-pulse`} style={{ animationDuration: isListening ? '1s' : '3s' }}></div>
         <div className="bg-white/30 rounded-full p-2.5 backdrop-blur-sm">
           <Mic size={24} className="text-white filter drop-shadow-md" />
         </div>

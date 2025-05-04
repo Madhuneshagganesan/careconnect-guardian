@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import { processVoiceCommand } from '@/utils/voiceCommands';
@@ -18,6 +17,7 @@ export const useVoiceCommandProcessor = (
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
+  const processingRef = useRef(false);
   
   useEffect(() => {
     // Listen for the custom closeVoiceAssistant event
@@ -33,9 +33,19 @@ export const useVoiceCommandProcessor = (
     };
   }, []);
   
+  // Reset processing state when transcript changes
+  useEffect(() => {
+    if (transcript !== lastProcessedTranscript) {
+      processingRef.current = false;
+    }
+  }, [transcript, lastProcessedTranscript]);
+  
   const processCommand = async () => {
     // Prevent multiple simultaneous processing
-    if (isProcessing || !transcript.trim()) return;
+    if (processingRef.current || isProcessing || !transcript.trim()) {
+      console.log('Skipping processing: already processing or empty transcript');
+      return;
+    }
     
     // Prevent processing the same transcript multiple times
     if (transcript === lastProcessedTranscript) {
@@ -43,9 +53,14 @@ export const useVoiceCommandProcessor = (
       return;
     }
     
+    // Set local ref to prevent race conditions
+    processingRef.current = true;
+    
     try {
       setIsProcessing(true);
       setIsLoading(true);
+      console.log('Processing transcript:', transcript);
+      
       // Store the current transcript so we don't process it again
       setLastProcessedTranscript(transcript);
       
@@ -70,6 +85,7 @@ export const useVoiceCommandProcessor = (
       setTranscript('');
       setIsLoading(false);
       setIsProcessing(false);
+      // Keep processingRef true for this transcript
       
     } catch (error) {
       console.error('Error processing voice command', error);
@@ -87,6 +103,7 @@ export const useVoiceCommandProcessor = (
         // Small delay before retry
         setTimeout(() => {
           setIsProcessing(false);
+          processingRef.current = false;
           setIsLoading(false);
           processCommand();
         }, 1000);
@@ -107,13 +124,16 @@ export const useVoiceCommandProcessor = (
         setLastProcessedTranscript('');
         setIsLoading(false);
         setIsProcessing(false);
+        processingRef.current = false;
       }
     }
   };
   
   // Function to reset the command state
   const resetCommand = () => {
+    console.log('Resetting command state');
     setIsProcessing(false);
+    processingRef.current = false;
     setIsLoading(false);
     setRetryAttempt(0);
     setLastProcessedTranscript('');
