@@ -59,11 +59,9 @@ export const useVoiceCommandProcessor = (
       setRetryAttempt(0); // Reset retry counter on success
       
       // Clear the transcript only after processing is complete
-      setTimeout(() => {
-        setTranscript('');
-        setIsLoading(false);
-        setIsProcessing(false);
-      }, 500);
+      setTranscript('');
+      setIsLoading(false);
+      setIsProcessing(false);
       
     } catch (error) {
       console.error('Error processing voice command', error);
@@ -108,6 +106,7 @@ export const useVoiceCommandProcessor = (
     isLoading,
     response,
     processCommand,
-    setResponse
+    setResponse,
+    isProcessing
   };
 };

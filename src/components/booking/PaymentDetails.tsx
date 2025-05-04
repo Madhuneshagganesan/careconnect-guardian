@@ -104,55 +104,55 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({
         <TabsContent value="payment-method" className="mt-4">
           <div 
             className={`border rounded-lg p-3 flex items-center mb-2 cursor-pointer ${
-              paymentMethod === 'cash' ? 'bg-guardian-50 border-guardian-500' : 'hover:bg-guardian-50/50'
+              paymentMethod === 'cash' ? 'bg-purple-50 border-purple-500' : 'hover:bg-purple-50/50'
             }`}
             onClick={() => setPaymentMethod('cash')}
           >
-            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-              <span className="text-primary font-bold text-xs">₹</span>
+            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+              <span className="text-purple-600 font-bold text-xs">₹</span>
             </div>
             <div>
               <p className="text-sm font-medium">Cash on Delivery</p>
               <p className="text-xs text-muted-foreground">Pay after service completion</p>
             </div>
-            {paymentMethod === 'cash' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
+            {paymentMethod === 'cash' && <CheckCircle size={16} className="text-purple-500 ml-auto" />}
           </div>
           
           <div 
             className={`border rounded-lg p-3 flex items-center cursor-pointer ${
-              paymentMethod === 'upi' ? 'bg-guardian-50 border-guardian-500' : 'hover:bg-guardian-50/50'
+              paymentMethod === 'upi' ? 'bg-purple-50 border-purple-500' : 'hover:bg-purple-50/50'
             }`}
             onClick={() => setPaymentMethod('upi')}
           >
-            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-              <Smartphone size={16} className="text-primary" />
+            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+              <Smartphone size={16} className="text-purple-600" />
             </div>
             <div>
               <p className="text-sm font-medium">UPI Payment</p>
               <p className="text-xs text-muted-foreground">Pay using any UPI app</p>
             </div>
-            {paymentMethod === 'upi' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
+            {paymentMethod === 'upi' && <CheckCircle size={16} className="text-purple-500 ml-auto" />}
           </div>
           
           <div 
             className={`border rounded-lg p-3 flex items-center cursor-pointer ${
-              paymentMethod === 'card' ? 'bg-guardian-50 border-guardian-500' : 'hover:bg-guardian-50/50'
+              paymentMethod === 'card' ? 'bg-purple-50 border-purple-500' : 'hover:bg-purple-50/50'
             }`}
             onClick={() => setPaymentMethod('card')}
           >
-            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-              <CreditCard size={16} className="text-primary" />
+            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+              <CreditCard size={16} className="text-purple-600" />
             </div>
             <div>
               <p className="text-sm font-medium">Credit/Debit Card</p>
               <p className="text-xs text-muted-foreground">Pay with your card</p>
             </div>
-            {paymentMethod === 'card' && <CheckCircle size={16} className="text-guardian-500 ml-auto" />}
+            {paymentMethod === 'card' && <CheckCircle size={16} className="text-purple-500 ml-auto" />}
           </div>
           
           <Button
             onClick={handlePayNow}
-            className="w-full mt-4 bg-guardian-600 hover:bg-guardian-700"
+            className="w-full mt-4 bg-purple-600 hover:bg-purple-700"
           >
             Pay Now
           </Button>
@@ -166,8 +166,8 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({
         </div>
       </div>
       
-      <div className="flex items-center p-3 mt-4 bg-guardian-50 rounded-lg">
-        <Shield size={18} className="text-guardian-500 mr-3 flex-shrink-0" />
+      <div className="flex items-center p-3 mt-4 bg-purple-50 rounded-lg">
+        <Shield size={18} className="text-purple-500 mr-3 flex-shrink-0" />
         <p className="text-sm">
           Secure payment processing. Your payment information is encrypted and protected.
         </p>

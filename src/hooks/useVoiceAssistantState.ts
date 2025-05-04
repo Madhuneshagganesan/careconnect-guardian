@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 export const useVoiceAssistantState = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [autoSpeaking, setAutoSpeaking] = useState(true); // Auto-speak enabled by default
+  const [isProcessing, setIsProcessing] = useState(false);
   const location = useLocation();
   const currentPage = location.pathname;
   
@@ -46,7 +47,8 @@ export const useVoiceAssistantState = () => {
     isLoading, 
     response, 
     processCommand, 
-    setResponse 
+    setResponse,
+    isProcessing: isCommandProcessing
   } = useVoiceCommandProcessor(
     transcript, 
     setTranscript, 
@@ -55,6 +57,11 @@ export const useVoiceAssistantState = () => {
     addMessageToHistory,
     currentPage
   );
+  
+  // Update local processing state when the command processor's state changes
+  useEffect(() => {
+    setIsProcessing(isCommandProcessing);
+  }, [isCommandProcessing]);
   
   // Listen for voice assistant close event
   useEffect(() => {
@@ -88,42 +95,37 @@ export const useVoiceAssistantState = () => {
   }, [response, autoSpeaking, isSpeaking, isLoading, speakResponse, detectedLanguage]);
   
   // Handle end of speech or process command when the user stops talking
-  const [speechPauseTimer, setSpeechPauseTimer] = useState<NodeJS.Timeout | null>(null);
+  const speechPauseTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     // If we have a transcript and we're listening, start the timer
     if (transcript && isListening && !isLoading && !isProcessing) {
       // Clear any existing timer
-      if (speechPauseTimer) {
-        clearTimeout(speechPauseTimer);
+      if (speechPauseTimerRef.current) {
+        clearTimeout(speechPauseTimerRef.current);
       }
       
       // Set a new timer to process the command after a pause in speech
-      const timer = setTimeout(() => {
+      speechPauseTimerRef.current = setTimeout(() => {
         processCommand();
       }, 1500); // 1.5 second pause before processing
-      
-      setSpeechPauseTimer(timer);
-      
-      // Clean up the timer when component unmounts
-      return () => {
-        if (timer) {
-          clearTimeout(timer);
-        }
-      };
     }
     
     // If we're not listening or loading or don't have a transcript, clear any timer
     if (!isListening || isLoading || !transcript) {
-      if (speechPauseTimer) {
-        clearTimeout(speechPauseTimer);
-        setSpeechPauseTimer(null);
+      if (speechPauseTimerRef.current) {
+        clearTimeout(speechPauseTimerRef.current);
+        speechPauseTimerRef.current = null;
       }
     }
-  }, [transcript, isListening, isLoading, processCommand]);
-  
-  // Track if we're processing to prevent multiple simultaneous executions
-  const [isProcessing, setIsProcessing] = useState(false);
+    
+    return () => {
+      if (speechPauseTimerRef.current) {
+        clearTimeout(speechPauseTimerRef.current);
+        speechPauseTimerRef.current = null;
+      }
+    };
+  }, [transcript, isListening, isLoading, isProcessing, processCommand]);
   
   // Let the user know the feature is ready
   useEffect(() => {
@@ -150,15 +152,25 @@ export const useVoiceAssistantState = () => {
       }, 500);
       return () => clearTimeout(timeoutId);
     } else {
-      // When opening, start listening automatically
+      // When opening, start listening automatically with a clean state
       setTimeout(() => {
+        setTranscript('');
         if (!isListening) {
-          setTranscript('');
           toggleListening();
         }
       }, 500);
     }
   }, [isOpen, clearHistory, setResponse, isListening, toggleListening, setTranscript]);
+
+  // Stop any ongoing speech when component unmounts
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+      if (speechPauseTimerRef.current) {
+        clearTimeout(speechPauseTimerRef.current);
+      }
+    };
+  }, [stopSpeaking]);
 
   return {
     isOpen,
