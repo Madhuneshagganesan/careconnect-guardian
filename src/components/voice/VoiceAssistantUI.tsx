@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Mic, MicOff, Volume2, Volume, Loader2, X, Speaker, Language, Play, Settings } from 'lucide-react';
+import { Mic, MicOff, Volume2, Volume, Loader2, X, Speaker, Languages, Play, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
 import { Card } from '@/components/ui/card';
 import {
@@ -173,7 +173,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
               <AlertDialogDescription className="text-xs leading-relaxed text-slate-500 mt-2">
                 {detectedLanguage && detectedLanguage !== 'en-US' ? (
                   <div className="flex items-center gap-1 text-purple-600">
-                    <Language size={14} />
+                    <Languages size={14} />
                     <span>Speaking in {LANGUAGE_OPTIONS.find(l => l.code === detectedLanguage)?.name || detectedLanguage}</span>
                   </div>
                 ) : (
@@ -276,7 +276,7 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
             
             <div className="p-4 bg-white rounded-lg border border-purple-100/50 shadow-sm">
               <h3 className="text-sm font-medium text-slate-800 mb-3 flex items-center gap-2">
-                <Language size={16} className="text-purple-600" />
+                <Languages size={16} className="text-purple-600" />
                 Language Settings
               </h3>
               

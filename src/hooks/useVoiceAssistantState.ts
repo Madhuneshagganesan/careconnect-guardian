@@ -87,16 +87,40 @@ export const useVoiceAssistantState = () => {
     }
   }, [response, autoSpeaking, isSpeaking, isLoading, speakResponse, detectedLanguage]);
   
-  // Automatically process voice commands after a short delay
+  // Handle end of speech or process command when the user stops talking
+  const [speechPauseTimer, setSpeechPauseTimer] = useState<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
-    if (transcript && isListening) {
-      const timeoutId = setTimeout(() => {
-        processCommand();
-      }, 1500); // Short delay to be more responsive
+    // If we have a transcript and we're listening, start the timer
+    if (transcript && isListening && !isLoading) {
+      // Clear any existing timer
+      if (speechPauseTimer) {
+        clearTimeout(speechPauseTimer);
+      }
       
-      return () => clearTimeout(timeoutId);
+      // Set a new timer to process the command after a pause in speech
+      const timer = setTimeout(() => {
+        processCommand();
+      }, 1500); // 1.5 second pause before processing
+      
+      setSpeechPauseTimer(timer);
+      
+      // Clean up the timer when component unmounts
+      return () => {
+        if (timer) {
+          clearTimeout(timer);
+        }
+      };
     }
-  }, [transcript, isListening, processCommand]);
+    
+    // If we're not listening or loading or don't have a transcript, clear any timer
+    if (!isListening || isLoading || !transcript) {
+      if (speechPauseTimer) {
+        clearTimeout(speechPauseTimer);
+        setSpeechPauseTimer(null);
+      }
+    }
+  }, [transcript, isListening, isLoading, processCommand]);
   
   // Let the user know the feature is ready
   useEffect(() => {

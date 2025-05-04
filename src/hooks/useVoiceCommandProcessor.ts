@@ -16,6 +16,7 @@ export const useVoiceCommandProcessor = (
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState('');
   const [retryAttempt, setRetryAttempt] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   useEffect(() => {
     // Listen for the custom closeVoiceAssistant event
@@ -32,12 +33,14 @@ export const useVoiceCommandProcessor = (
   }, []);
   
   const processCommand = async () => {
-    if (!transcript.trim()) return;
-    
-    setIsLoading(true);
-    stopListening();
+    // Prevent multiple simultaneous processing
+    if (isProcessing || !transcript.trim()) return;
     
     try {
+      setIsProcessing(true);
+      setIsLoading(true);
+      stopListening();
+      
       // Add user input to conversation history
       addMessageToHistory('user', transcript);
       
@@ -54,6 +57,10 @@ export const useVoiceCommandProcessor = (
       
       setResponse(responseText);
       setRetryAttempt(0); // Reset retry counter on success
+      
+      // Clear the transcript only after processing is complete
+      setTranscript('');
+      
     } catch (error) {
       console.error('Error processing voice command', error);
       
@@ -68,7 +75,10 @@ export const useVoiceCommandProcessor = (
         });
         
         // Small delay before retry
-        setTimeout(() => processCommand(), 1000);
+        setTimeout(() => {
+          setIsProcessing(false);
+          processCommand();
+        }, 1000);
       } else {
         toast({
           title: "Processing Error",
@@ -80,9 +90,13 @@ export const useVoiceCommandProcessor = (
         addMessageToHistory('assistant', "I'm sorry, I had trouble understanding that. Could you try rephrasing your request?");
         setResponse("I'm sorry, I had trouble understanding that. Could you try rephrasing your request?");
         setRetryAttempt(0); // Reset counter
+        
+        // Clear the transcript to allow for a new command
+        setTranscript('');
       }
     } finally {
       setIsLoading(false);
+      setIsProcessing(false);
     }
   };
   
