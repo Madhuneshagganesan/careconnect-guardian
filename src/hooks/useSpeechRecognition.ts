@@ -18,19 +18,25 @@ export const useSpeechRecognition = () => {
       const isRecognitionSupported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
       setIsSupported(isRecognitionSupported);
       
-      if (isRecognitionSupported && !isInitializedRef.current) {
+      if (isRecognitionSupported) {
         initializeRecognition();
       }
     }
     
     return () => {
-      stopListening();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error('Error stopping speech recognition on unmount:', e);
+        }
+      }
     };
   }, []);
 
   // Initialize speech recognition
   const initializeRecognition = useCallback(() => {
-    if (isInitializedRef.current) return;
+    if (isInitializedRef.current || !window) return;
     
     try {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -123,9 +129,19 @@ export const useSpeechRecognition = () => {
     
     try {
       if (recognitionRef.current) {
+        // Reset transcript when starting new listening session
         setTranscript('');
         setInterimTranscript('');
-        recognitionRef.current.start();
+        
+        // Start recognition after a small delay to ensure everything is set up
+        setTimeout(() => {
+          try {
+            recognitionRef.current?.start();
+          } catch (e) {
+            console.error('Failed to start speech recognition after delay:', e);
+            setIsListening(false);
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Failed to start speech recognition:', error);
@@ -140,18 +156,18 @@ export const useSpeechRecognition = () => {
 
   // Stop listening
   const stopListening = useCallback(() => {
-    if (recognitionRef.current && isListening) {
-      try {
-        recognitionRef.current.stop();
+    try {
+      if (recognitionRef.current) {
         console.log('Stopping speech recognition');
-      } catch (e) {
-        console.error('Error stopping speech recognition:', e);
+        recognitionRef.current.stop();
       }
+      setIsListening(false);
+      setInterimTranscript('');
+    } catch (e) {
+      console.error('Error stopping speech recognition:', e);
+      setIsListening(false);
     }
-    
-    setIsListening(false);
-    setInterimTranscript('');
-  }, [isListening]);
+  }, []);
 
   // Toggle listening state
   const toggleListening = useCallback(() => {

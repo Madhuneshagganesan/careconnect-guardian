@@ -8,6 +8,7 @@ export const useSpeechSynthesis = () => {
   const [currentVoice, setCurrentVoice] = useState<SpeechSynthesisVoice | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const isInitialized = useRef(false);
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   
   // Initialize speech synthesis on mount
   useEffect(() => {
@@ -45,13 +46,14 @@ export const useSpeechSynthesis = () => {
     return () => {
       if (synthRef.current) {
         synthRef.current.cancel();
+        setIsSpeaking(false);
       }
     };
-  }, [currentVoice]);
+  }, []);
   
   // Speak response
   const speakResponse = useCallback((text: string, language?: string) => {
-    if (!synthRef.current) {
+    if (!synthRef.current || !window.speechSynthesis) {
       toast({
         title: "Not Supported",
         description: "Voice synthesis is not supported in your browser.",
@@ -60,14 +62,15 @@ export const useSpeechSynthesis = () => {
       return;
     }
     
-    if (!text) return;
+    if (!text || !text.trim()) return;
     
     try {
       // Cancel any ongoing speech first
-      synthRef.current.cancel();
+      stopSpeaking();
       
       // Create utterance
       const utterance = new SpeechSynthesisUtterance(text);
+      currentUtteranceRef.current = utterance;
       
       // Set voice based on language or default to current voice
       if (language && voices.length > 0) {
@@ -85,25 +88,35 @@ export const useSpeechSynthesis = () => {
       
       // Set callbacks
       utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        currentUtteranceRef.current = null;
+      };
       utterance.onerror = (event) => {
         console.error('Speech synthesis error:', event);
         setIsSpeaking(false);
-        toast({
-          title: "Speech Error",
-          description: "There was an error while speaking the response.",
-          variant: "destructive",
-        });
+        currentUtteranceRef.current = null;
       };
       
       // Speak
       setIsSpeaking(true);
-      synthRef.current.speak(utterance);
+      window.speechSynthesis.speak(utterance);
+      
+      // Chrome bug workaround - if speech doesn't start in 1 second, try again
+      setTimeout(() => {
+        if (currentUtteranceRef.current === utterance && !isSpeaking) {
+          console.log('Speech synthesis may be stuck, attempting restart');
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 1000);
+      
     } catch (error) {
       console.error('Error with speech synthesis:', error);
       setIsSpeaking(false);
+      currentUtteranceRef.current = null;
     }
-  }, [voices, currentVoice]);
+  }, [voices, currentVoice, isSpeaking]);
   
   // Stop speaking
   const stopSpeaking = useCallback(() => {
@@ -111,6 +124,7 @@ export const useSpeechSynthesis = () => {
       try {
         synthRef.current.cancel();
         setIsSpeaking(false);
+        currentUtteranceRef.current = null;
       } catch (error) {
         console.error('Error stopping speech synthesis:', error);
       }

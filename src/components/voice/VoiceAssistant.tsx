@@ -34,6 +34,17 @@ const VoiceAssistant = () => {
   const handleOpenDialog = useCallback(() => {
     try {
       setIsOpen(true);
+      
+      // Toast to help user know what to do (show only once per session)
+      if (!sessionStorage.getItem('voiceAssistantHelpShown')) {
+        sessionStorage.setItem('voiceAssistantHelpShown', 'true');
+        setTimeout(() => {
+          toast({
+            title: "Voice Assistant Ready",
+            description: "Say 'Help' to learn about available commands",
+          });
+        }, 1000);
+      }
     } catch (error) {
       console.error('Failed to open voice assistant:', error);
       toast({

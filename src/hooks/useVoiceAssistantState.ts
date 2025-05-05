@@ -15,8 +15,7 @@ export const useVoiceAssistantState = () => {
   
   // Speech pause timer for processing commands
   const speechPauseTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastTranscriptRef = useRef<string>('');
-  const hasAttemptedInit = useRef(false);
+  const isInitialized = useRef(false);
   
   // Initialize hooks
   const { 
@@ -73,30 +72,35 @@ export const useVoiceAssistantState = () => {
     
     if (open) {
       // When opening
-      if (!hasAttemptedInit.current) {
-        hasAttemptedInit.current = true;
+      setTimeout(() => {
+        setTranscript('');
+        resetCommand();
+        isInitialized.current = true;
+        
+        // Start listening with a delay to ensure UI is ready
         setTimeout(() => {
-          setTranscript('');
-          lastTranscriptRef.current = '';
-          resetCommand();
-          
-          // Start listening with a delay to ensure UI is ready
-          setTimeout(() => {
-            if (!isListening) {
+          if (!isListening) {
+            try {
               startListening();
+            } catch (e) {
+              console.error('Failed to start listening on dialog open:', e);
             }
-          }, 300);
-        }, 300);
-      }
+          }
+        }, 500);
+      }, 300);
     } else {
       // When closing
       clearHistory();
       setResponse('');
       setTranscript('');
-      lastTranscriptRef.current = '';
       resetCommand();
-      stopListening();
-      stopSpeaking();
+      
+      try {
+        stopListening();
+        stopSpeaking();
+      } catch (e) {
+        console.error('Error during cleanup on close:', e);
+      }
       
       if (speechPauseTimerRef.current) {
         clearTimeout(speechPauseTimerRef.current);
@@ -121,20 +125,21 @@ export const useVoiceAssistantState = () => {
   // Auto-speak responses when enabled
   useEffect(() => {
     if (autoSpeaking && response && !isSpeaking && !isLoading) {
-      speakResponse(response, detectedLanguage);
+      try {
+        speakResponse(response, detectedLanguage);
+      } catch (e) {
+        console.error('Error auto-speaking response:', e);
+      }
     }
   }, [response, autoSpeaking, isSpeaking, isLoading, speakResponse, detectedLanguage]);
   
   // Process command when speech pauses
   useEffect(() => {
     // Only set up listener when dialog is open
-    if (!isOpen) return;
+    if (!isOpen || !isInitialized.current) return;
     
     // Process after pause in speech
-    if (transcript && transcript !== lastTranscriptRef.current && isListening && !isLoading) {
-      // Save current transcript
-      lastTranscriptRef.current = transcript;
-      
+    if (transcript && isListening && !isLoading) {
       // Clear existing timer
       if (speechPauseTimerRef.current) {
         clearTimeout(speechPauseTimerRef.current);
@@ -142,49 +147,60 @@ export const useVoiceAssistantState = () => {
       
       // Set new timer
       speechPauseTimerRef.current = setTimeout(() => {
-        if (!isLoading) {
+        if (!isLoading && transcript.trim()) {
           // Add user input to conversation history first
           addMessageToHistory('user', transcript);
-          processCommand();
+          
+          try {
+            processCommand();
+          } catch (e) {
+            console.error('Error processing command after pause:', e);
+            
+            // Provide feedback on failure
+            const errorMessage = "I'm sorry, I couldn't process that command.";
+            addMessageToHistory('assistant', errorMessage);
+            setResponse(errorMessage);
+            
+            if (autoSpeaking) {
+              speakResponse(errorMessage);
+            }
+          }
         }
       }, 1500); // 1.5 second pause
     }
     
-    // Clear timer when conditions change
-    if (!isListening || isLoading || !transcript || !isOpen) {
+    return () => {
       if (speechPauseTimerRef.current) {
         clearTimeout(speechPauseTimerRef.current);
         speechPauseTimerRef.current = null;
       }
-    }
-    
-    return () => {
-      if (speechPauseTimerRef.current) {
-        clearTimeout(speechPauseTimerRef.current);
-      }
     };
-  }, [transcript, isListening, isLoading, processCommand, addMessageToHistory, isOpen]);
+  }, [
+    transcript, 
+    isListening, 
+    isLoading, 
+    processCommand, 
+    addMessageToHistory, 
+    isOpen, 
+    autoSpeaking, 
+    speakResponse
+  ]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopSpeaking();
-      stopListening();
+      try {
+        stopSpeaking();
+        stopListening();
+      } catch (e) {
+        console.error('Error during cleanup on unmount:', e);
+      }
+      
       if (speechPauseTimerRef.current) {
         clearTimeout(speechPauseTimerRef.current);
       }
     };
   }, [stopSpeaking, stopListening]);
-
-  // Show welcome toast on first visit
-  useEffect(() => {
-    const hasShownWelcome = sessionStorage.getItem('voiceAssistantWelcomeShown');
-    if (!hasShownWelcome) {
-      setTimeout(() => {
-        sessionStorage.setItem('voiceAssistantWelcomeShown', 'true');
-      }, 3000);
-    }
-  }, []);
 
   return {
     isOpen,

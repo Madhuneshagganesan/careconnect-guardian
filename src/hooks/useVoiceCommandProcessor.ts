@@ -1,5 +1,5 @@
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { findBestCommandMatch, processVoiceCommand } from '@/utils/voiceCommands';
@@ -16,12 +16,17 @@ export const useVoiceCommandProcessor = (
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState('');
   const lastProcessedRef = useRef('');
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Process commands
   const processCommand = useCallback(async () => {
+    // Don't process if there's no transcript or if it's the same as last processed
     if (!transcript.trim() || transcript === lastProcessedRef.current) {
       return;
     }
+    
+    // Already loading, don't process again
+    if (isLoading) return;
     
     setIsLoading(true);
     
@@ -29,6 +34,12 @@ export const useVoiceCommandProcessor = (
       // Store the current transcript to prevent reprocessing
       const currentTranscript = transcript;
       lastProcessedRef.current = currentTranscript;
+      
+      // Clear timeout if it exists
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+        processingTimeoutRef.current = null;
+      }
       
       // Process the command
       const responseText = await processVoiceCommand(
@@ -59,12 +70,30 @@ export const useVoiceCommandProcessor = (
       });
     } finally {
       setIsLoading(false);
+      
+      // Set timeout to allow processing again after a delay
+      processingTimeoutRef.current = setTimeout(() => {
+        lastProcessedRef.current = '';
+      }, 1000);
     }
-  }, [transcript, navigate, addMessageToHistory, speakResponse, currentPage, setTranscript]);
+  }, [transcript, navigate, addMessageToHistory, speakResponse, currentPage, setTranscript, isLoading]);
   
   // Reset for new command
   const resetCommand = useCallback(() => {
     lastProcessedRef.current = '';
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = null;
+    }
+  }, []);
+  
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+      }
+    };
   }, []);
   
   return {
