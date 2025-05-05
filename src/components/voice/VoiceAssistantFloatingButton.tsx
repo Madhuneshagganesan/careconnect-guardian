@@ -13,15 +13,8 @@ export const VoiceAssistantFloatingButton: React.FC<VoiceAssistantFloatingButton
   setIsOpen,
   isListening,
 }) => {
-  const [isMounted, setIsMounted] = useState(false);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
-
-  // Prevent multiple clicks and ensure proper initialization
-  useEffect(() => {
-    setIsMounted(true);
-    return () => setIsMounted(false);
-  }, []);
-
+  
   const handleButtonClick = () => {
     // Prevent multiple rapid clicks
     if (isButtonDisabled) return;
@@ -56,7 +49,7 @@ export const VoiceAssistantFloatingButton: React.FC<VoiceAssistantFloatingButton
       size="icon"
       variant="default"
       aria-label="Open voice assistant"
-      disabled={isButtonDisabled && !isMounted}
+      disabled={isButtonDisabled}
     >
       <div className="relative flex items-center justify-center w-full h-full">
         <div 

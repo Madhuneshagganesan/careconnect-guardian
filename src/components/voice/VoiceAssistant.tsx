@@ -4,7 +4,6 @@ import { AlertDialog } from "@/components/ui/alert-dialog";
 import { VoiceAssistantDialog } from './VoiceAssistantDialog';
 import { VoiceAssistantFloatingButton } from './VoiceAssistantFloatingButton';
 import { useVoiceAssistantState } from '@/hooks/useVoiceAssistantState';
-import { VoiceAssistantUI } from './VoiceAssistantUI';
 
 const VoiceAssistant = () => {
   const {

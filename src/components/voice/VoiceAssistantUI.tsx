@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Mic, MicOff, Volume2, Volume, Loader2, X, Speaker, Languages, Play, Settings } from 'lucide-react';
+import { Mic, MicOff, Volume2, Volume, Loader2, X, Speaker, Languages, Play } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
 import { Card } from '@/components/ui/card';
 import {
@@ -19,14 +19,7 @@ const LANGUAGE_OPTIONS = [
   { code: 'en-US', name: 'English (US)' },
   { code: 'es-ES', name: 'Spanish' },
   { code: 'fr-FR', name: 'French' },
-  { code: 'de-DE', name: 'German' },
-  { code: 'it-IT', name: 'Italian' },
-  { code: 'ja-JP', name: 'Japanese' },
-  { code: 'ko-KR', name: 'Korean' },
-  { code: 'pt-BR', name: 'Portuguese' },
-  { code: 'ru-RU', name: 'Russian' },
-  { code: 'zh-CN', name: 'Chinese (Simplified)' },
-  { code: 'hi-IN', name: 'Hindi' },
+  { code: 'de-DE', name: 'German' }
 ];
 
 interface VoiceAssistantUIProps {
@@ -150,7 +143,6 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
                 <div className="flex justify-center my-6 items-center" aria-label="Processing your request">
                   <div className="relative">
                     <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                    <div className="absolute inset-0 h-8 w-8 rounded-full border-2 border-t-purple-500 border-r-transparent border-b-transparent border-l-transparent animate-spin opacity-30"></div>
                   </div>
                   <span className="ml-3 text-sm text-slate-600">Processing...</span>
                 </div>
@@ -296,23 +288,19 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Speech recognition will also try to auto-detect your speaking language
-                  </p>
                 </div>
               )}
             </div>
             
             <div className="p-4 bg-white rounded-lg border border-purple-100/50 shadow-sm">
-              <h3 className="text-sm font-medium text-slate-800 mb-3 flex items-center gap-2">
-                <Settings size={16} className="text-guardian-600" />
+              <h3 className="text-sm font-medium text-slate-800 mb-3">
                 Help & Information
               </h3>
               
               <VoiceCommandHelp />
               
               <p className="text-xs text-slate-500 mt-3">
-                The voice assistant can understand multiple languages and will try to respond in the detected language.
+                Speak naturally to interact with the voice assistant. Try saying a command to navigate or search the site.
               </p>
             </div>
           </TabsContent>
@@ -321,29 +309,6 @@ export const VoiceAssistantUI: React.FC<VoiceAssistantUIProps> = ({
     );
   }
   
-  // If not showing in dialog, just render the floating button
-  return (
-    <Button 
-      onClick={() => setIsOpen(true)} 
-      className="fixed bottom-6 right-6 rounded-full shadow-lg w-16 h-16 z-[9999] bg-gradient-to-b from-guardian-500 to-guardian-700 hover:from-guardian-600 hover:to-guardian-800 transition-all duration-300 border-2 border-white/20 backdrop-blur-sm"
-      size="icon"
-      variant="default"
-      aria-label="Open voice assistant"
-    >
-      <div className="relative flex items-center justify-center w-full h-full">
-        <div className="absolute inset-0 bg-guardian-500/30 rounded-full animate-pulse" style={{ animationDuration: '3s' }}></div>
-        <Mic size={24} className="text-white filter drop-shadow-md" />
-        {isListening && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-30"></span>
-            <span className="absolute top-2 right-2 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-            </span>
-          </div>
-        )}
-      </div>
-      <span className="sr-only">Open voice assistant</span>
-    </Button>
-  );
+  // If not showing in dialog, just render null (the floating button is handled elsewhere)
+  return null;
 };
