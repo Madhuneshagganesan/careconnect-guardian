@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { VoiceAssistantUI } from './VoiceAssistantUI';
 
@@ -48,6 +48,18 @@ export const VoiceAssistantDialog: React.FC<VoiceAssistantDialogProps> = ({
   detectedLanguage,
   setDetectedLanguage
 }) => {
+  // Handle escape key to close dialog
+  useEffect(() => {
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    
+    window.addEventListener('keydown', handleEscapeKey);
+    return () => window.removeEventListener('keydown', handleEscapeKey);
+  }, [isOpen, setIsOpen]);
+  
   if (!isOpen) return null;
   
   return (

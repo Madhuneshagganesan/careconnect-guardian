@@ -1,16 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Mic } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
-import { toast } from '@/hooks/use-toast';
 
 interface VoiceAssistantFloatingButtonProps {
-  setIsOpen: (isOpen: boolean) => void;
+  openDialog: () => void;
   isListening: boolean;
 }
 
 export const VoiceAssistantFloatingButton: React.FC<VoiceAssistantFloatingButtonProps> = ({
-  setIsOpen,
+  openDialog,
   isListening,
 }) => {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
@@ -21,16 +20,8 @@ export const VoiceAssistantFloatingButton: React.FC<VoiceAssistantFloatingButton
     
     setIsButtonDisabled(true);
     
-    try {
-      setIsOpen(true);
-    } catch (error) {
-      console.error('Failed to open voice assistant:', error);
-      toast({
-        title: "Voice Assistant Error",
-        description: "Could not open voice assistant. Please try again.",
-        variant: "destructive",
-      });
-    }
+    // Open the dialog
+    openDialog();
     
     // Re-enable after a short delay
     setTimeout(() => {

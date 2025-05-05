@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { VoiceAssistantDialog } from './VoiceAssistantDialog';
 import { VoiceAssistantFloatingButton } from './VoiceAssistantFloatingButton';
 import { useVoiceAssistantState } from '@/hooks/useVoiceAssistantState';
+import { toast } from '@/hooks/use-toast';
 
 const VoiceAssistant = () => {
   const {
@@ -15,6 +16,7 @@ const VoiceAssistant = () => {
     transcript,
     interimTranscript,
     toggleListening,
+    stopListening,
     conversationHistory,
     isLoading,
     isSpeaking,
@@ -28,6 +30,19 @@ const VoiceAssistant = () => {
     detectedLanguage,
     setDetectedLanguage
   } = useVoiceAssistantState();
+  
+  const handleOpenDialog = useCallback(() => {
+    try {
+      setIsOpen(true);
+    } catch (error) {
+      console.error('Failed to open voice assistant:', error);
+      toast({
+        title: "Voice Assistant Error",
+        description: "Could not open voice assistant. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [setIsOpen]);
   
   return (
     <>
@@ -58,7 +73,7 @@ const VoiceAssistant = () => {
       
       {/* Always visible floating button */}
       <VoiceAssistantFloatingButton
-        setIsOpen={setIsOpen}
+        openDialog={handleOpenDialog}
         isListening={isListening}
       />
     </>

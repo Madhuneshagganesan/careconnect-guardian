@@ -1,13 +1,8 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-
-interface CommandResult {
-  response: string;
-  path?: string;
-  shouldClose?: boolean;
-}
+import { findBestCommandMatch, processVoiceCommand } from '@/utils/voiceCommands';
 
 export const useVoiceCommandProcessor = (
   transcript: string, 
@@ -23,7 +18,7 @@ export const useVoiceCommandProcessor = (
   const lastProcessedRef = useRef('');
   
   // Process commands
-  const processCommand = async () => {
+  const processCommand = useCallback(async () => {
     if (!transcript.trim() || transcript === lastProcessedRef.current) {
       return;
     }
@@ -35,75 +30,17 @@ export const useVoiceCommandProcessor = (
       const currentTranscript = transcript;
       lastProcessedRef.current = currentTranscript;
       
-      // Add user input to conversation history
-      addMessageToHistory('user', currentTranscript);
-      
-      const command = currentTranscript.toLowerCase().trim();
-      
-      // Process command
-      let result: CommandResult = { response: '' };
-      
-      // Navigation commands
-      if (command.includes('home') || command.includes('main page')) {
-        result = { response: 'Taking you to the home page', path: '/' };
-      } 
-      else if (command.includes('services') || command.includes('offerings')) {
-        result = { response: 'Taking you to our services', path: '/services' };
-      }
-      else if (command.includes('caregiver') || command.includes('care')) {
-        result = { response: 'Taking you to our caregivers', path: '/caregivers' };
-      }
-      else if (command.includes('book') || command.includes('appointment')) {
-        result = { response: 'Taking you to book a service', path: '/book-service' };
-      }
-      else if (command.includes('profile') || command.includes('account')) {
-        result = { response: 'Taking you to your profile', path: '/profile' };
-      }
-      else if (command.includes('close') || command.includes('bye') || command.includes('exit')) {
-        result = { response: 'Closing voice assistant', shouldClose: true };
-      }
-      // Help commands
-      else if (command.includes('help') || command.includes('what can you do')) {
-        result = { 
-          response: 'I can help you navigate the site, find information, or book services. Try saying "Go to home page" or "Tell me about services".'
-        };
-      }
-      // Search
-      else {
-        // Treat as search query
-        result = { 
-          response: `Searching for "${command}"`,
-          path: '/services'
-        };
-        
-        // Store search term in session storage
-        try {
-          sessionStorage.setItem('voiceSearchQuery', command);
-        } catch (e) {
-          console.error('Error storing search query:', e);
-        }
-      }
+      // Process the command
+      const responseText = await processVoiceCommand(
+        currentTranscript,
+        navigate,
+        addMessageToHistory,
+        speakResponse,
+        currentPage
+      );
       
       // Set response
-      setResponse(result.response);
-      
-      // Add response to conversation history
-      addMessageToHistory('assistant', result.response);
-      
-      // Speak response
-      speakResponse(result.response);
-      
-      // Navigate if a path was set
-      if (result.path) {
-        setTimeout(() => navigate(result.path || '/'), 1000);
-      }
-      
-      // Handle closing
-      if (result.shouldClose) {
-        setTimeout(() => {
-          document.dispatchEvent(new CustomEvent('closeVoiceAssistant'));
-        }, 1500);
-      }
+      setResponse(responseText);
       
       // Clear transcript
       setTranscript('');
@@ -114,15 +51,21 @@ export const useVoiceCommandProcessor = (
       setResponse(errorMessage);
       addMessageToHistory('assistant', errorMessage);
       speakResponse(errorMessage);
+      
+      toast({
+        title: "Processing Error",
+        description: "There was an error processing your voice command.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [transcript, navigate, addMessageToHistory, speakResponse, currentPage, setTranscript]);
   
   // Reset for new command
-  const resetCommand = () => {
+  const resetCommand = useCallback(() => {
     lastProcessedRef.current = '';
-  };
+  }, []);
   
   return {
     isLoading,
