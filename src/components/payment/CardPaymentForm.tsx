@@ -54,10 +54,20 @@ const CardPaymentForm: React.FC<CardPaymentFormProps> = ({ amount, onSuccess, on
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCardNumber(formatCardNumber(e.target.value));
+    
+    // Clear any previous errors when user starts typing
+    if (errors.cardNumber) {
+      setErrors(prev => ({...prev, cardNumber: undefined}));
+    }
   };
 
   const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCardExpiry(formatExpiry(e.target.value));
+    
+    // Clear any previous errors when user starts typing
+    if (errors.cardExpiry) {
+      setErrors(prev => ({...prev, cardExpiry: undefined}));
+    }
   };
 
   const validateForm = (): boolean => {
@@ -147,10 +157,12 @@ const CardPaymentForm: React.FC<CardPaymentFormProps> = ({ amount, onSuccess, on
                 value={cardNumber}
                 onChange={handleCardNumberChange}
                 placeholder="1234 5678 9012 3456"
-                className={`pl-10 w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-guardian-500 ${
+                className={`pl-10 w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-purple-500 ${
                   errors.cardNumber ? 'border-red-500' : 'border-border'
                 }`}
                 disabled={isProcessing}
+                autoComplete="cc-number"
+                inputMode="numeric"
               />
               <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
             </div>
@@ -171,11 +183,13 @@ const CardPaymentForm: React.FC<CardPaymentFormProps> = ({ amount, onSuccess, on
                   value={cardExpiry}
                   onChange={handleExpiryChange}
                   placeholder="MM/YY"
-                  className={`pl-10 w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-guardian-500 ${
+                  className={`pl-10 w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-purple-500 ${
                     errors.cardExpiry ? 'border-red-500' : 'border-border'
                   }`}
                   maxLength={5}
                   disabled={isProcessing}
+                  autoComplete="cc-exp"
+                  inputMode="numeric"
                 />
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
               </div>
@@ -192,13 +206,21 @@ const CardPaymentForm: React.FC<CardPaymentFormProps> = ({ amount, onSuccess, on
                   type="password"
                   id="cardCvv"
                   value={cardCvv}
-                  onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    setCardCvv(value);
+                    if (errors.cardCvv) {
+                      setErrors(prev => ({...prev, cardCvv: undefined}));
+                    }
+                  }}
                   placeholder="123"
-                  className={`pl-10 w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-guardian-500 ${
+                  className={`pl-10 w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-purple-500 ${
                     errors.cardCvv ? 'border-red-500' : 'border-border'
                   }`}
                   maxLength={4}
                   disabled={isProcessing}
+                  autoComplete="cc-csc"
+                  inputMode="numeric"
                 />
                 <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
               </div>
@@ -216,12 +238,18 @@ const CardPaymentForm: React.FC<CardPaymentFormProps> = ({ amount, onSuccess, on
                 type="text"
                 id="cardName"
                 value={cardName}
-                onChange={(e) => setCardName(e.target.value)}
+                onChange={(e) => {
+                  setCardName(e.target.value);
+                  if (errors.cardName) {
+                    setErrors(prev => ({...prev, cardName: undefined}));
+                  }
+                }}
                 placeholder="John Doe"
-                className={`pl-10 w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-guardian-500 ${
+                className={`pl-10 w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-purple-500 ${
                   errors.cardName ? 'border-red-500' : 'border-border'
                 }`}
                 disabled={isProcessing}
+                autoComplete="cc-name"
               />
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
             </div>
@@ -229,7 +257,7 @@ const CardPaymentForm: React.FC<CardPaymentFormProps> = ({ amount, onSuccess, on
           </div>
           
           {/* Amount Display */}
-          <div className="bg-guardian-50 p-3 rounded-md text-center">
+          <div className="bg-purple-50 p-3 rounded-md text-center">
             <p className="text-sm text-muted-foreground">Total Amount</p>
             <p className="text-2xl font-medium">₹{amount.toFixed(2)}</p>
           </div>
@@ -238,7 +266,7 @@ const CardPaymentForm: React.FC<CardPaymentFormProps> = ({ amount, onSuccess, on
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button
               type="submit"
-              className="flex-1 bg-guardian-600 hover:bg-guardian-700"
+              className="flex-1 bg-purple-600 hover:bg-purple-700"
               disabled={isProcessing}
             >
               {isProcessing ? (

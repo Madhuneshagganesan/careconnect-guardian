@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mic } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
 
@@ -12,17 +12,49 @@ export const VoiceAssistantFloatingButton: React.FC<VoiceAssistantFloatingButton
   setIsOpen,
   isListening,
 }) => {
+  const [isMounted, setIsMounted] = useState(false);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+
+  // Prevent multiple clicks and ensure proper initialization
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  const handleButtonClick = () => {
+    // Prevent multiple rapid clicks
+    if (isButtonDisabled) return;
+    
+    setIsButtonDisabled(true);
+    setIsOpen(true);
+    
+    // Re-enable after a short delay
+    setTimeout(() => {
+      setIsButtonDisabled(false);
+    }, 1000);
+  };
+
   return (
     <Button 
-      onClick={() => setIsOpen(true)} 
-      className="fixed bottom-6 right-6 rounded-full shadow-lg w-16 h-16 z-[9999] bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 transition-all duration-300 border-2 border-purple-300/30 backdrop-blur-sm"
+      onClick={handleButtonClick} 
+      className={`fixed bottom-6 right-6 rounded-full shadow-lg w-16 h-16 z-[9999] transition-all duration-300 border-2 backdrop-blur-sm
+        ${isListening 
+          ? 'bg-red-500 hover:bg-red-600 border-red-300/30' 
+          : 'bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 border-purple-300/30'
+        }`}
       size="icon"
       variant="default"
       aria-label="Open voice assistant"
+      disabled={isButtonDisabled && !isMounted}
     >
       <div className="relative flex items-center justify-center w-full h-full">
-        <div className={`absolute inset-0 ${isListening ? 'bg-purple-400/50' : 'bg-purple-400/30'} rounded-full animate-pulse`} style={{ animationDuration: isListening ? '1s' : '3s' }}></div>
-        <div className="bg-white/30 rounded-full p-2.5 backdrop-blur-sm">
+        <div 
+          className={`absolute inset-0 rounded-full animate-pulse ${
+            isListening ? 'bg-red-400/40' : 'bg-purple-400/30'
+          }`} 
+          style={{ animationDuration: isListening ? '1s' : '3s' }}
+        ></div>
+        <div className={`${isListening ? 'bg-white/50' : 'bg-white/30'} rounded-full p-2.5 backdrop-blur-sm`}>
           <Mic size={24} className="text-white filter drop-shadow-md" />
         </div>
         {isListening && (

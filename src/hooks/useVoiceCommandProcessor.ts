@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
@@ -18,6 +19,7 @@ export const useVoiceCommandProcessor = (
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
   const processingRef = useRef(false);
+  const activeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     // Listen for the custom closeVoiceAssistant event
@@ -30,6 +32,11 @@ export const useVoiceCommandProcessor = (
     
     return () => {
       document.removeEventListener('closeVoiceAssistant', handleCloseAssistant);
+      
+      // Clear any active timeouts when unmounting
+      if (activeTimeoutRef.current) {
+        clearTimeout(activeTimeoutRef.current);
+      }
     };
   }, []);
   
@@ -41,6 +48,12 @@ export const useVoiceCommandProcessor = (
   }, [transcript, lastProcessedTranscript]);
   
   const processCommand = async () => {
+    // Clear any existing timeouts
+    if (activeTimeoutRef.current) {
+      clearTimeout(activeTimeoutRef.current);
+      activeTimeoutRef.current = null;
+    }
+    
     // Prevent multiple simultaneous processing
     if (processingRef.current || isProcessing || !transcript.trim()) {
       console.log('Skipping processing: already processing or empty transcript');
@@ -101,7 +114,7 @@ export const useVoiceCommandProcessor = (
         });
         
         // Small delay before retry
-        setTimeout(() => {
+        activeTimeoutRef.current = setTimeout(() => {
           setIsProcessing(false);
           processingRef.current = false;
           setIsLoading(false);
@@ -132,6 +145,13 @@ export const useVoiceCommandProcessor = (
   // Function to reset the command state
   const resetCommand = () => {
     console.log('Resetting command state');
+    
+    // Clear any active timeouts
+    if (activeTimeoutRef.current) {
+      clearTimeout(activeTimeoutRef.current);
+      activeTimeoutRef.current = null;
+    }
+    
     setIsProcessing(false);
     processingRef.current = false;
     setIsLoading(false);

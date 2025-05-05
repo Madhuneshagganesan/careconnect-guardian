@@ -8,8 +8,8 @@ type CommandData = {
 
 // Command match result type
 interface CommandMatch {
-  type: 'assistant' | 'navigation' | 'service';
-  data: CommandData | { response: string; path?: string };
+  type: 'assistant' | 'navigation' | 'service' | 'search';
+  data: CommandData | { response: string; path?: string; searchQuery?: string };
 }
 
 // Define commands interfaces
@@ -273,30 +273,54 @@ const defaultPageContext = {
 
 // Find best match for a command
 export const findBestCommandMatch = (userCommand: string): CommandMatch | null => {
+  const lowerCaseCommand = userCommand.toLowerCase().trim();
+  
+  // Check for search commands
+  if (lowerCaseCommand.startsWith('search for') || 
+      lowerCaseCommand.startsWith('find') || 
+      lowerCaseCommand.startsWith('look for') || 
+      lowerCaseCommand.startsWith('search')) {
+    
+    let searchQuery = lowerCaseCommand
+      .replace(/^search for|^search|^find|^look for/i, '')
+      .trim();
+    
+    if (searchQuery) {
+      return { 
+        type: 'search', 
+        data: { 
+          response: `Searching for "${searchQuery}" across the site`,
+          path: '/services', // Default path for search results
+          searchQuery: searchQuery
+        } 
+      };
+    }
+  }
+  
   // First check for assistant control commands
-  if (assistantCommands[userCommand]) {
+  if (assistantCommands[lowerCaseCommand]) {
     return { 
       type: 'assistant', 
       data: { 
-        response: assistantCommands[userCommand],
+        response: assistantCommands[lowerCaseCommand],
         path: '' // Add empty path to ensure consistent structure
       } 
     };
   }
   
   // Then check for exact matches in navigation commands
-  if (navigationCommands[userCommand]) {
-    return { type: 'navigation', data: navigationCommands[userCommand] };
+  if (navigationCommands[lowerCaseCommand]) {
+    return { type: 'navigation', data: navigationCommands[lowerCaseCommand] };
   }
   
   // Check for exact matches in service categories
-  if (serviceCategories[userCommand]) {
-    return { type: 'service', data: serviceCategories[userCommand] };
+  if (serviceCategories[lowerCaseCommand]) {
+    return { type: 'service', data: serviceCategories[lowerCaseCommand] };
   }
   
   // If no exact match, look for partial matches in assistant commands
   for (const [phrase, response] of Object.entries(assistantCommands)) {
-    if (userCommand.includes(phrase)) {
+    if (lowerCaseCommand.includes(phrase)) {
       return { 
         type: 'assistant', 
         data: { 
@@ -309,54 +333,66 @@ export const findBestCommandMatch = (userCommand: string): CommandMatch | null =
   
   // Look for partial matches in navigation commands
   for (const [phrase, data] of Object.entries(navigationCommands)) {
-    if (userCommand.includes(phrase)) {
+    if (lowerCaseCommand.includes(phrase)) {
       return { type: 'navigation', data };
     }
   }
   
   // Look for partial matches in service categories
   for (const [category, data] of Object.entries(serviceCategories)) {
-    if (userCommand.includes(category)) {
+    if (lowerCaseCommand.includes(category)) {
       return { type: 'service', data };
     }
   }
   
   // Look for key words/phrases in the command
-  if (/home|main|start|landing/i.test(userCommand)) {
+  if (/home|main|start|landing/i.test(lowerCaseCommand)) {
     return { type: 'navigation', data: navigationCommands['go to home'] };
   }
   
-  if (/caregiver|care giver|find care|care provider/i.test(userCommand)) {
+  if (/caregiver|care giver|find care|care provider/i.test(lowerCaseCommand)) {
     return { type: 'navigation', data: navigationCommands['go to caregivers'] };
   }
   
-  if (/how|works|process|steps|explain|explanation/i.test(userCommand)) {
+  if (/how|works|process|steps|explain|explanation/i.test(lowerCaseCommand)) {
     return { type: 'navigation', data: navigationCommands['go to how it works'] };
   }
   
-  if (/about|us|company|who|info|information/i.test(userCommand)) {
+  if (/about|us|company|who|info|information/i.test(lowerCaseCommand)) {
     return { type: 'navigation', data: navigationCommands['go to about us'] };
   }
   
-  if (/book|service|appointment|schedule|reserve|reservation/i.test(userCommand)) {
+  if (/book|service|appointment|schedule|reserve|reservation/i.test(lowerCaseCommand)) {
     return { type: 'navigation', data: navigationCommands['go to book a caregiver'] };
   }
   
-  if (/profile|account|my info|settings|my details|user/i.test(userCommand)) {
+  if (/profile|account|my info|settings|my details|user/i.test(lowerCaseCommand)) {
     return { type: 'navigation', data: navigationCommands['go to profile'] };
   }
   
-  if (/services|offerings|help|assistance|options|provide/i.test(userCommand)) {
+  if (/services|offerings|help|assistance|options|provide/i.test(lowerCaseCommand)) {
     return { type: 'navigation', data: navigationCommands['go to services'] };
   }
   
-  if (/close|exit|dismiss|shut|bye|goodbye|end/i.test(userCommand)) {
+  if (/close|exit|dismiss|shut|bye|goodbye|end/i.test(lowerCaseCommand)) {
     return { 
       type: 'assistant', 
       data: { 
         response: 'Closing the assistant.',
         path: '' // Add empty path to ensure consistent structure
       } 
+    };
+  }
+  
+  // If it looks like a search query but doesn't match our patterns
+  if (lowerCaseCommand.length > 3 && !lowerCaseCommand.includes('close') && !lowerCaseCommand.includes('exit')) {
+    return {
+      type: 'search',
+      data: {
+        response: `I'll search for "${lowerCaseCommand}" for you`,
+        path: '/services',
+        searchQuery: lowerCaseCommand
+      }
     };
   }
   
@@ -386,6 +422,7 @@ export const processVoiceCommand = async (
   let navigationPath = '';
   let navigationDelay = 1000;
   let closeAssistant = false;
+  let searchQuery = '';
   
   const isCurrentPageQuery = /where am i|what page|current page|this page/i.test(command);
 
@@ -428,6 +465,19 @@ export const processVoiceCommand = async (
       } else if (match.type === 'service') {
         navigationPath = match.data.path;
         responseText = match.data.response;
+      } else if (match.type === 'search') {
+        navigationPath = match.data.path;
+        responseText = match.data.response;
+        if ('searchQuery' in match.data) {
+          searchQuery = match.data.searchQuery || '';
+          
+          // Store the search query in session storage for the services page to use
+          try {
+            sessionStorage.setItem('voiceSearchQuery', searchQuery);
+          } catch (error) {
+            console.error('Error storing search query:', error);
+          }
+        }
       }
     } else {
       // Handle search-like queries with context awareness
@@ -438,6 +488,13 @@ export const processVoiceCommand = async (
         if (searchTerm) {
           responseText = `I'll help you find information about "${searchTerm}". Let me take you to our services page where you can explore options.`;
           navigationPath = '/services';
+          
+          // Store the search term for the services page
+          try {
+            sessionStorage.setItem('voiceSearchQuery', searchTerm);
+          } catch (error) {
+            console.error('Error storing search query:', error);
+          }
         } else {
           responseText = "What would you like me to search for? You can say things like 'find cooking help' or 'search for medication assistance'.";
         }
