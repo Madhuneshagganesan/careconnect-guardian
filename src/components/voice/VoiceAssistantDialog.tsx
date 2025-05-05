@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AlertDialogContent } from "@/components/ui/alert-dialog";
+import { AlertDialogContent, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { VoiceAssistantUI } from './VoiceAssistantUI';
 
 interface VoiceAssistantDialogProps {
@@ -52,6 +52,7 @@ export const VoiceAssistantDialog: React.FC<VoiceAssistantDialogProps> = ({
   
   return (
     <AlertDialogContent className="sm:max-w-md bg-white/95 backdrop-blur-sm border border-purple-100/50 shadow-lg rounded-xl">
+      <AlertDialogTitle className="sr-only">Voice Assistant</AlertDialogTitle>
       <VoiceAssistantUI
         isOpen={isOpen}
         setIsOpen={setIsOpen}

@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { processVoiceCommand } from '@/utils/voiceCommands';
 
 export const useVoiceCommandProcessor = (
@@ -42,7 +42,7 @@ export const useVoiceCommandProcessor = (
   
   // Reset processing state when transcript changes
   useEffect(() => {
-    if (transcript !== lastProcessedTranscript) {
+    if (transcript && transcript !== lastProcessedTranscript) {
       processingRef.current = false;
     }
   }, [transcript, lastProcessedTranscript]);
@@ -61,7 +61,7 @@ export const useVoiceCommandProcessor = (
     }
     
     // Prevent processing the same transcript multiple times
-    if (transcript === lastProcessedTranscript) {
+    if (transcript === lastProcessedTranscript && lastProcessedTranscript !== '') {
       console.log('This transcript has already been processed, skipping');
       return;
     }
@@ -75,12 +75,13 @@ export const useVoiceCommandProcessor = (
       console.log('Processing transcript:', transcript);
       
       // Store the current transcript so we don't process it again
-      setLastProcessedTranscript(transcript);
+      const currentTranscript = transcript;
+      setLastProcessedTranscript(currentTranscript);
       
       // Add user input to conversation history
-      addMessageToHistory('user', transcript);
+      addMessageToHistory('user', currentTranscript);
       
-      const command = transcript.toLowerCase().trim();
+      const command = currentTranscript.toLowerCase().trim();
       
       // Process the command with current page context
       const responseText = await processVoiceCommand(
@@ -98,7 +99,6 @@ export const useVoiceCommandProcessor = (
       setTranscript('');
       setIsLoading(false);
       setIsProcessing(false);
-      // Keep processingRef true for this transcript
       
     } catch (error) {
       console.error('Error processing voice command', error);
