@@ -18,7 +18,7 @@ export const useVoiceCommandProcessor = (
   const lastProcessedRef = useRef('');
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Process commands
+  // Process commands with debouncing to prevent multiple executions
   const processCommand = useCallback(async () => {
     // Don't process if there's no transcript or if it's the same as last processed
     if (!transcript.trim() || transcript === lastProcessedRef.current) {
@@ -29,6 +29,7 @@ export const useVoiceCommandProcessor = (
     if (isLoading) return;
     
     setIsLoading(true);
+    console.log("Processing voice command:", transcript);
     
     try {
       // Store the current transcript to prevent reprocessing
@@ -53,6 +54,9 @@ export const useVoiceCommandProcessor = (
       // Set response
       setResponse(responseText);
       
+      // Add assistant response to history
+      addMessageToHistory('assistant', responseText);
+      
       // Clear transcript
       setTranscript('');
       
@@ -61,7 +65,6 @@ export const useVoiceCommandProcessor = (
       const errorMessage = "I'm sorry, I had trouble processing that request.";
       setResponse(errorMessage);
       addMessageToHistory('assistant', errorMessage);
-      speakResponse(errorMessage);
       
       toast({
         title: "Processing Error",
@@ -74,13 +77,14 @@ export const useVoiceCommandProcessor = (
       // Set timeout to allow processing again after a delay
       processingTimeoutRef.current = setTimeout(() => {
         lastProcessedRef.current = '';
-      }, 1000);
+      }, 2000); // Increased delay to prevent rapid reprocessing
     }
   }, [transcript, navigate, addMessageToHistory, speakResponse, currentPage, setTranscript, isLoading]);
   
   // Reset for new command
   const resetCommand = useCallback(() => {
     lastProcessedRef.current = '';
+    setResponse('');
     if (processingTimeoutRef.current) {
       clearTimeout(processingTimeoutRef.current);
       processingTimeoutRef.current = null;

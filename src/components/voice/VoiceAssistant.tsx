@@ -38,7 +38,7 @@ const VoiceAssistant = () => {
       stopListening();
       stopSpeaking();
       
-      // Now open the dialog
+      // Clean transcript and response
       setIsOpen(true);
       
       // Start listening with a delay to ensure UI is ready
@@ -58,8 +58,13 @@ const VoiceAssistant = () => {
           }
         } catch (error) {
           console.error('Failed to start listening:', error);
+          toast({
+            title: "Voice Assistant Error",
+            description: "Could not initialize microphone. Please check browser permissions.",
+            variant: "destructive",
+          });
         }
-      }, 500);
+      }, 800); // Increased delay for better initialization
     } catch (error) {
       console.error('Failed to open voice assistant:', error);
       toast({
@@ -70,11 +75,13 @@ const VoiceAssistant = () => {
     }
   }, [setIsOpen, stopListening, stopSpeaking, startListening]);
 
-  // When voice assistant is closed, clean up resources
+  // Clean up resources when voice assistant closes
   useEffect(() => {
     if (!isOpen) {
-      stopListening();
-      stopSpeaking();
+      setTimeout(() => {
+        stopListening();
+        stopSpeaking();
+      }, 200);
     }
   }, [isOpen, stopListening, stopSpeaking]);
   

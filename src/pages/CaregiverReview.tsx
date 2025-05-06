@@ -17,7 +17,6 @@ const CaregiverReview = () => {
   const [caregiverData, setCaregiverData] = useState({
     id: id || '1',
     name: 'Loading...',
-    imageUrl: 'https://randomuser.me/api/portraits/women/32.jpg',
     service: 'Loading...',
     date: new Date().toLocaleDateString()
   });
@@ -33,7 +32,6 @@ const CaregiverReview = () => {
       setCaregiverData({
         id: id || '1',
         name: caregiverBooking.caregiver || 'Unknown Caregiver',
-        imageUrl: 'https://randomuser.me/api/portraits/women/32.jpg', // Default image
         service: caregiverBooking.service || 'Home Care',
         date: caregiverBooking.date ? `${caregiverBooking.date}, ${caregiverBooking.time || ''}` : new Date().toLocaleDateString()
       });
@@ -104,19 +102,10 @@ const CaregiverReview = () => {
         <h1 className="text-2xl font-bold text-center mb-8">Rate Your Experience</h1>
         
         <Card className="p-6 mb-8">
-          <div className="flex items-center mb-6">
-            <div className="w-16 h-16 rounded-full overflow-hidden mr-4">
-              <img 
-                src={caregiverData.imageUrl} 
-                alt={caregiverData.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold">{caregiverData.name}</h2>
-              <p className="text-gray-600">{caregiverData.service}</p>
-              <p className="text-sm text-gray-500">{caregiverData.date}</p>
-            </div>
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold mb-1">{caregiverData.name}</h2>
+            <p className="text-gray-600">{caregiverData.service}</p>
+            <p className="text-sm text-gray-500 mb-4">{caregiverData.date}</p>
           </div>
           
           <div className="mb-8">
