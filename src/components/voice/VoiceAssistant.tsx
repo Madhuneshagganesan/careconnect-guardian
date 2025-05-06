@@ -85,6 +85,29 @@ const VoiceAssistant = () => {
     }
   }, [isOpen, stopListening, stopSpeaking]);
   
+  // Handle speech synthesis errors by retrying with fallback
+  useEffect(() => {
+    const handleSpeechSynthesisError = (e: any) => {
+      console.log("Speech synthesis error detected, attempting fallback");
+      if (response && !isSpeaking && autoSpeaking) {
+        // Try using a different voice or web speech API fallback
+        setTimeout(() => {
+          try {
+            speakResponse(response);
+          } catch (err) {
+            console.error("Fallback speech synthesis also failed:", err);
+          }
+        }, 300);
+      }
+    };
+    
+    window.addEventListener('speech-synthesis-error', handleSpeechSynthesisError);
+    
+    return () => {
+      window.removeEventListener('speech-synthesis-error', handleSpeechSynthesisError);
+    };
+  }, [response, isSpeaking, autoSpeaking, speakResponse]);
+  
   return (
     <>
       <AlertDialog open={isOpen} onOpenChange={setIsOpen}>

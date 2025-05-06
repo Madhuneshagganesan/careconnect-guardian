@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -42,9 +41,13 @@ export const useVoiceCommandProcessor = (
         processingTimeoutRef.current = null;
       }
       
-      // Process the command
+      // Simplify repetitive phrases in transcript
+      const simplifiedTranscript = simplifyRepetitiveTranscript(currentTranscript);
+      console.log("Simplified transcript:", simplifiedTranscript);
+      
+      // Process the command with simplified transcript
       const responseText = await processVoiceCommand(
-        currentTranscript,
+        simplifiedTranscript,
         navigate,
         addMessageToHistory,
         speakResponse,
@@ -80,6 +83,68 @@ export const useVoiceCommandProcessor = (
       }, 2000); // Increased delay to prevent rapid reprocessing
     }
   }, [transcript, navigate, addMessageToHistory, speakResponse, currentPage, setTranscript, isLoading]);
+  
+  // Function to simplify repetitive phrases in transcript
+  const simplifyRepetitiveTranscript = (text: string): string => {
+    if (!text) return text;
+    
+    // Split by spaces
+    const words = text.split(' ');
+    const result: string[] = [];
+    const seenPhrases = new Set<string>();
+    
+    // For longer repetitive phrases (3-4 words)
+    for (let phraseLength = 4; phraseLength >= 2; phraseLength--) {
+      if (words.length <= phraseLength) continue;
+      
+      for (let i = 0; i <= words.length - phraseLength; i++) {
+        const phrase = words.slice(i, i + phraseLength).join(' ').toLowerCase();
+        
+        // Count occurrences of this phrase in the text
+        let count = 0;
+        let position = -1;
+        let pos = text.toLowerCase().indexOf(phrase);
+        
+        while (pos !== -1) {
+          count++;
+          position = pos;
+          pos = text.toLowerCase().indexOf(phrase, pos + 1);
+        }
+        
+        // If phrase repeats more than twice, add to seen phrases
+        if (count >= 2) {
+          seenPhrases.add(phrase);
+        }
+      }
+    }
+    
+    // Build simplified text by keeping only one occurrence of repeated phrases
+    let currentIndex = 0;
+    let simplifiedText = text;
+    
+    seenPhrases.forEach(phrase => {
+      // Replace multiple occurrences with a single occurrence
+      const regex = new RegExp(`(${phrase}\\s*){2,}`, 'gi');
+      simplifiedText = simplifiedText.replace(regex, `${phrase} `);
+    });
+    
+    // Check for single word repetition
+    const wordMap: Record<string, number> = {};
+    words.forEach(word => {
+      const lowerWord = word.toLowerCase();
+      wordMap[lowerWord] = (wordMap[lowerWord] || 0) + 1;
+    });
+    
+    // If a word repeats more than 3 times, simplify further
+    Object.entries(wordMap).forEach(([word, count]) => {
+      if (count > 3 && word.length > 2) {
+        const regex = new RegExp(`(${word}\\s*){3,}`, 'gi');
+        simplifiedText = simplifiedText.replace(regex, `${word} `);
+      }
+    });
+    
+    return simplifiedText.trim();
+  };
   
   // Reset for new command
   const resetCommand = useCallback(() => {
