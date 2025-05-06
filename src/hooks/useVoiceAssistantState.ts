@@ -49,7 +49,12 @@ export const useVoiceAssistantState = () => {
 
   // Initialize command processor
   const speakResponseCallback = useCallback((text: string) => {
-    speakResponse(text, detectedLanguage);
+    // Using a small delay to ensure audio context is ready
+    setTimeout(() => {
+      if (text && text.trim()) {
+        speakResponse(text, detectedLanguage);
+      }
+    }, 100);
   }, [speakResponse, detectedLanguage]);
   
   const { 
@@ -78,6 +83,12 @@ export const useVoiceAssistantState = () => {
         resetCommand();
         isInitialized.current = true;
         processingRef.current = false;
+        
+        // Clear any existing timers
+        if (speechPauseTimerRef.current) {
+          clearTimeout(speechPauseTimerRef.current);
+          speechPauseTimerRef.current = null;
+        }
         
         // Start listening with a delay to ensure UI is ready
         setTimeout(() => {
@@ -129,7 +140,9 @@ export const useVoiceAssistantState = () => {
   useEffect(() => {
     if (autoSpeaking && response && !isSpeaking && !isLoading) {
       try {
-        speakResponse(response, detectedLanguage);
+        setTimeout(() => {
+          speakResponse(response, detectedLanguage);
+        }, 300);
       } catch (e) {
         console.error('Error auto-speaking response:', e);
       }
@@ -142,7 +155,7 @@ export const useVoiceAssistantState = () => {
     if (!isOpen || !isInitialized.current) return;
     
     // Process after pause in speech
-    if (transcript && isListening && !isLoading && !processingRef.current) {
+    if (transcript && transcript.trim() && isListening && !isLoading && !processingRef.current) {
       // Clear existing timer
       if (speechPauseTimerRef.current) {
         clearTimeout(speechPauseTimerRef.current);
@@ -154,10 +167,13 @@ export const useVoiceAssistantState = () => {
           // Set processing flag to prevent multiple processing
           processingRef.current = true;
           
+          console.log("Processing transcript:", transcript);
+          
           // Add user input to conversation history
           addMessageToHistory('user', transcript);
           
           try {
+            // Process the command
             processCommand();
           } catch (e) {
             console.error('Error processing command after pause:', e);
@@ -175,10 +191,10 @@ export const useVoiceAssistantState = () => {
             setTimeout(() => {
               processingRef.current = false;
               setTranscript('');
-            }, 3000);
+            }, 2000);
           }
         }
-      }, 1500); // 1.5 second pause
+      }, 1200); // 1.2 second pause
     }
     
     return () => {
@@ -215,6 +231,15 @@ export const useVoiceAssistantState = () => {
     };
   }, [stopSpeaking, stopListening]);
 
+  // If dialog is closed unexpectedly, make sure we clean up
+  useEffect(() => {
+    if (!isOpen && isInitialized.current) {
+      stopListening();
+      stopSpeaking();
+      setTranscript('');
+    }
+  }, [isOpen, stopListening, stopSpeaking, setTranscript]);
+
   return {
     isOpen,
     setIsOpen: handleOpenChange,
@@ -225,6 +250,7 @@ export const useVoiceAssistantState = () => {
     interimTranscript,
     toggleListening,
     stopListening,
+    startListening,
     conversationHistory,
     isLoading,
     isSpeaking,

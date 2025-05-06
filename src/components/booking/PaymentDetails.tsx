@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CreditCard, Smartphone, CheckCircle, Info, Shield } from 'lucide-react';
 import AnimatedCard from '@/components/ui/AnimatedCard';
 import { Button } from '@/components/ui/shadcn-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UpiPaymentForm from '@/components/payment/UpiPaymentForm';
 import CardPaymentForm from '@/components/payment/CardPaymentForm';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 interface PaymentDetailsProps {
   servicePrice: number;
@@ -31,6 +31,16 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({
 }) => {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentFormType, setPaymentFormType] = useState<'upi' | 'card' | null>(null);
+  
+  // Save payment method to local storage whenever it changes
+  useEffect(() => {
+    const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+    if (bookings.length > 0) {
+      const latestBooking = bookings[bookings.length - 1];
+      latestBooking.paymentMethod = paymentMethod;
+      localStorage.setItem('bookings', JSON.stringify(bookings));
+    }
+  }, [paymentMethod]);
   
   const handlePayNow = () => {
     if (paymentMethod === 'cash') {

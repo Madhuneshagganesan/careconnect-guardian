@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, Navigation, ChevronDown, ChevronUp, Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
@@ -11,6 +12,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { useFavoriteCaregivers } from '@/hooks/useFavoriteCaregivers';
 import LiveTrackingMap from './LiveTrackingMap';
+import { useNavigate } from 'react-router-dom';
 
 interface Caregiver {
   id: string;
@@ -53,6 +55,8 @@ const mockCaregivers = [
 ];
 
 const LiveTracking = () => {
+  const navigate = useNavigate();
+  
   // Get bookings from localStorage
   const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
   const latestBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null;
@@ -68,10 +72,14 @@ const LiveTracking = () => {
     address: latestBooking?.address || '123 Main Street, Bangalore',
     dateTime: latestBooking ? `${latestBooking.date}, ${latestBooking.time}` : 'Today, 3:00 PM',
     duration: latestBooking?.duration || '2 hours',
-    payment: 'Cash on delivery',
+    payment: latestBooking?.paymentMethod === 'upi' ? 'UPI Payment' : 
+             latestBooking?.paymentMethod === 'card' ? 'Credit/Debit Card' : 'Cash on delivery',
     service: latestBooking?.service || 'Personal Care',
     price: latestBooking?.totalPrice || '₹1,849'
   });
+  
+  // Track if the review page has been navigated to
+  const [navigatedToReview, setNavigatedToReview] = useState(false);
   
   // Simulate caregiver location updates
   useEffect(() => {
@@ -150,6 +158,14 @@ const LiveTracking = () => {
               description: `${caregiverName} has arrived at your location.`,
             });
             localStorage.setItem('notified_arrival_' + selectedCaregiverId, 'true');
+            
+            // Navigate to review page after 3 seconds
+            if (!navigatedToReview) {
+              setTimeout(() => {
+                setNavigatedToReview(true);
+                navigate(`/caregiver/${selectedCaregiverId}/review`);
+              }, 3000);
+            }
           }
           
           return 100;
@@ -177,7 +193,7 @@ const LiveTracking = () => {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [selectedCaregiverId]);
+  }, [selectedCaregiverId, navigate, navigatedToReview]);
   
   const contactCaregiver = (method: 'call' | 'message') => {
     if (!caregiver) return;
@@ -198,6 +214,12 @@ const LiveTracking = () => {
   const handleFavoriteToggle = () => {
     if (!caregiver) return;
     toggleFavorite(caregiver.id);
+  };
+
+  const handleReviewClick = () => {
+    if (caregiver) {
+      navigate(`/caregiver/${caregiver.id}/review`);
+    }
   };
   
   if (!caregiver) {
@@ -332,6 +354,12 @@ const LiveTracking = () => {
         {caregiver.status === 'arrived' && (
           <div className="bg-green-50 p-4 rounded-lg text-center">
             <p className="text-green-700 font-medium">Your caregiver has arrived!</p>
+            <Button
+              onClick={handleReviewClick}
+              className="mt-3 bg-green-600 hover:bg-green-700"
+            >
+              Leave a Review
+            </Button>
           </div>
         )}
         
@@ -375,3 +403,4 @@ const LiveTracking = () => {
 };
 
 export default LiveTracking;
+
