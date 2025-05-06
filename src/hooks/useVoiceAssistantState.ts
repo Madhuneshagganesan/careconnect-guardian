@@ -13,7 +13,8 @@ export const useVoiceAssistantState = () => {
   const location = useLocation();
   const currentPage = location.pathname;
   
-  // Speech pause timer for processing commands
+  // Prevent multiple processing cycles
+  const processingRef = useRef(false);
   const speechPauseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialized = useRef(false);
   
@@ -76,6 +77,7 @@ export const useVoiceAssistantState = () => {
         setTranscript('');
         resetCommand();
         isInitialized.current = true;
+        processingRef.current = false;
         
         // Start listening with a delay to ensure UI is ready
         setTimeout(() => {
@@ -94,6 +96,7 @@ export const useVoiceAssistantState = () => {
       setResponse('');
       setTranscript('');
       resetCommand();
+      processingRef.current = false;
       
       try {
         stopListening();
@@ -139,7 +142,7 @@ export const useVoiceAssistantState = () => {
     if (!isOpen || !isInitialized.current) return;
     
     // Process after pause in speech
-    if (transcript && isListening && !isLoading) {
+    if (transcript && isListening && !isLoading && !processingRef.current) {
       // Clear existing timer
       if (speechPauseTimerRef.current) {
         clearTimeout(speechPauseTimerRef.current);
@@ -147,8 +150,11 @@ export const useVoiceAssistantState = () => {
       
       // Set new timer
       speechPauseTimerRef.current = setTimeout(() => {
-        if (!isLoading && transcript.trim()) {
-          // Add user input to conversation history first
+        if (!isLoading && transcript.trim() && !processingRef.current) {
+          // Set processing flag to prevent multiple processing
+          processingRef.current = true;
+          
+          // Add user input to conversation history
           addMessageToHistory('user', transcript);
           
           try {
@@ -164,6 +170,12 @@ export const useVoiceAssistantState = () => {
             if (autoSpeaking) {
               speakResponse(errorMessage);
             }
+          } finally {
+            // Reset processing flag after 3 seconds to allow new commands
+            setTimeout(() => {
+              processingRef.current = false;
+              setTranscript('');
+            }, 3000);
           }
         }
       }, 1500); // 1.5 second pause
@@ -183,7 +195,8 @@ export const useVoiceAssistantState = () => {
     addMessageToHistory, 
     isOpen, 
     autoSpeaking, 
-    speakResponse
+    speakResponse,
+    setTranscript
   ]);
 
   // Cleanup on unmount

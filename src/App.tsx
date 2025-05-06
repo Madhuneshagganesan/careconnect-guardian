@@ -9,6 +9,7 @@ import HowItWorks from '@/pages/HowItWorks';
 import Services from '@/pages/Services';
 import Caregivers from '@/pages/Caregivers';
 import CaregiverDetail from '@/pages/CaregiverDetail';
+import CaregiverReview from '@/pages/CaregiverReview';
 import BookService from '@/pages/BookService';
 import Login from '@/pages/auth/Login';
 import SignUp from '@/pages/auth/SignUp';
@@ -33,6 +34,7 @@ function App() {
             <Route path="/services" element={<Services />} />
             <Route path="/caregivers" element={<Caregivers />} />
             <Route path="/caregiver/:id" element={<CaregiverDetail />} />
+            <Route path="/caregiver/:id/review" element={<CaregiverReview />} />
             <Route path="/book-service" element={<BookService />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />

@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { VoiceAssistantDialog } from './VoiceAssistantDialog';
 import { VoiceAssistantFloatingButton } from './VoiceAssistantFloatingButton';
@@ -33,6 +33,11 @@ const VoiceAssistant = () => {
   
   const handleOpenDialog = useCallback(() => {
     try {
+      // Stop any existing sessions and reset before opening
+      stopListening();
+      stopSpeaking();
+      
+      // Now open the dialog
       setIsOpen(true);
       
       // Toast to help user know what to do (show only once per session)
@@ -53,7 +58,7 @@ const VoiceAssistant = () => {
         variant: "destructive",
       });
     }
-  }, [setIsOpen]);
+  }, [setIsOpen, stopListening, stopSpeaking]);
   
   return (
     <>

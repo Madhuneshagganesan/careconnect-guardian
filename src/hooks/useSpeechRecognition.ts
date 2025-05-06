@@ -11,6 +11,7 @@ export const useSpeechRecognition = () => {
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isInitializedRef = useRef(false);
+  const restartTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check browser support on mount
   useEffect(() => {
@@ -18,7 +19,7 @@ export const useSpeechRecognition = () => {
       const isRecognitionSupported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
       setIsSupported(isRecognitionSupported);
       
-      if (isRecognitionSupported) {
+      if (isRecognitionSupported && !isInitializedRef.current) {
         initializeRecognition();
       }
     }
@@ -27,9 +28,14 @@ export const useSpeechRecognition = () => {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
+          setIsListening(false);
         } catch (e) {
           console.error('Error stopping speech recognition on unmount:', e);
         }
+      }
+      
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
       }
     };
   }, []);
@@ -81,14 +87,22 @@ export const useSpeechRecognition = () => {
               description: "Please allow microphone access to use voice recognition.",
               variant: "destructive",
             });
+            setIsListening(false);
+          } else if (event.error === 'network') {
+            // Try to restart on network errors
+            restartRecognition();
           }
-          
-          setIsListening(false);
         };
 
         recognitionRef.current.onend = () => {
           console.log('Speech recognition ended');
-          setIsListening(false);
+          
+          // If we're supposed to be listening but recognition stopped, try to restart
+          if (isListening) {
+            restartRecognition();
+          } else {
+            setIsListening(false);
+          }
         };
         
         isInitializedRef.current = true;
@@ -97,7 +111,33 @@ export const useSpeechRecognition = () => {
       console.error('Error initializing speech recognition:', error);
       setIsSupported(false);
     }
-  }, [detectedLanguage]);
+  }, [detectedLanguage, isListening]);
+
+  // Restart recognition after errors or unexpected stops
+  const restartRecognition = useCallback(() => {
+    // Cancel any existing restart timers
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
+    
+    // Don't restart if we intentionally stopped
+    if (!isListening) return;
+    
+    console.log('Attempting to restart speech recognition');
+    
+    restartTimerRef.current = setTimeout(() => {
+      try {
+        if (recognitionRef.current) {
+          recognitionRef.current.start();
+          console.log('Speech recognition restarted');
+        }
+      } catch (e) {
+        console.error('Failed to restart speech recognition:', e);
+        setIsListening(false);
+      }
+    }, 300);
+  }, [isListening]);
 
   // Update recognition language when changed
   useEffect(() => {
@@ -137,6 +177,7 @@ export const useSpeechRecognition = () => {
         setTimeout(() => {
           try {
             recognitionRef.current?.start();
+            console.log('Speech recognition started after delay');
           } catch (e) {
             console.error('Failed to start speech recognition after delay:', e);
             setIsListening(false);
@@ -163,6 +204,12 @@ export const useSpeechRecognition = () => {
       }
       setIsListening(false);
       setInterimTranscript('');
+      
+      // Clear any restart timers
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = null;
+      }
     } catch (e) {
       console.error('Error stopping speech recognition:', e);
       setIsListening(false);
