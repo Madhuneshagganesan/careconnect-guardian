@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, Navigation, ChevronDown, ChevronUp, Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
@@ -403,4 +402,3 @@ const LiveTracking = () => {
 };
 
 export default LiveTracking;
-

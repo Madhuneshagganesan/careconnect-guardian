@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Star, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn-button';
@@ -14,15 +14,40 @@ const CaregiverReview = () => {
   const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // In a real app, we would fetch caregiver details from the server
-  const caregiver = {
+  const [caregiverData, setCaregiverData] = useState({
     id: id || '1',
-    name: 'Jane Smith', // Placeholder
+    name: 'Loading...',
     imageUrl: 'https://randomuser.me/api/portraits/women/32.jpg',
-    service: 'Home Care',
+    service: 'Loading...',
     date: new Date().toLocaleDateString()
-  };
+  });
+
+  // Get caregiver data from localStorage or bookings
+  useEffect(() => {
+    // First, check if we have a booking with this caregiver
+    const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+    const caregiverBooking = bookings.find(booking => booking.caregiverId?.toString() === id);
+    
+    if (caregiverBooking) {
+      // Use data from the booking
+      setCaregiverData({
+        id: id || '1',
+        name: caregiverBooking.caregiver || 'Unknown Caregiver',
+        imageUrl: 'https://randomuser.me/api/portraits/women/32.jpg', // Default image
+        service: caregiverBooking.service || 'Home Care',
+        date: caregiverBooking.date ? `${caregiverBooking.date}, ${caregiverBooking.time || ''}` : new Date().toLocaleDateString()
+      });
+    } else {
+      // Fallback to localStorage for active caregiver info
+      const activeName = localStorage.getItem('activeCaregiverName');
+      if (activeName) {
+        setCaregiverData(prev => ({
+          ...prev,
+          name: activeName
+        }));
+      }
+    }
+  }, [id]);
 
   const handleSubmitReview = async () => {
     if (rating === 0) {
@@ -43,13 +68,24 @@ const CaregiverReview = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800));
       
+      // Store the review in localStorage for persistence
+      const reviews = JSON.parse(localStorage.getItem('caregiver_reviews') || '[]');
+      reviews.push({
+        id: Date.now().toString(),
+        caregiverId: id,
+        rating,
+        feedback,
+        date: new Date().toISOString()
+      });
+      localStorage.setItem('caregiver_reviews', JSON.stringify(reviews));
+      
       toast({
         title: "Review Submitted",
-        description: "Thank you for sharing your feedback!",
+        description: `Thank you for reviewing ${caregiverData.name}!`,
       });
       
       // Navigate back to home or profile
-      navigate('/');
+      navigate('/profile');
     } catch (error) {
       console.error('Failed to submit review:', error);
       toast({
@@ -71,15 +107,15 @@ const CaregiverReview = () => {
           <div className="flex items-center mb-6">
             <div className="w-16 h-16 rounded-full overflow-hidden mr-4">
               <img 
-                src={caregiver.imageUrl} 
-                alt={caregiver.name}
+                src={caregiverData.imageUrl} 
+                alt={caregiverData.name}
                 className="w-full h-full object-cover"
               />
             </div>
             <div>
-              <h2 className="text-xl font-semibold">{caregiver.name}</h2>
-              <p className="text-gray-600">{caregiver.service}</p>
-              <p className="text-sm text-gray-500">{caregiver.date}</p>
+              <h2 className="text-xl font-semibold">{caregiverData.name}</h2>
+              <p className="text-gray-600">{caregiverData.service}</p>
+              <p className="text-sm text-gray-500">{caregiverData.date}</p>
             </div>
           </div>
           

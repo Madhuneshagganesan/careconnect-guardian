@@ -68,11 +68,14 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
         setUpiId={setUpiId}
         onPaymentSuccess={() => {
           // This is a placeholder for when payment is successful
-          // Store the payment method in the booking
+          // Store the payment method and upi ID in local storage to use later
           const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
           if (bookings.length > 0) {
             const latestBooking = bookings[bookings.length - 1];
             latestBooking.paymentMethod = paymentMethod;
+            if (paymentMethod === 'upi' && upiId) {
+              latestBooking.upiId = upiId;
+            }
             localStorage.setItem('bookings', JSON.stringify(bookings));
           }
         }}
