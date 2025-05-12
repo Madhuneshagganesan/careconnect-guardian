@@ -34,37 +34,25 @@ const VoiceAssistant = () => {
   
   const handleOpenDialog = useCallback(() => {
     try {
-      // Stop any existing sessions and reset before opening
+      // First ensure any existing sessions are stopped
       stopListening();
       stopSpeaking();
       
-      // Clean transcript and response
-      setIsOpen(true);
-      
-      // Start listening with a delay to ensure UI is ready
+      // Then open the dialog - the useVoiceAssistantState will handle initialization
       setTimeout(() => {
-        try {
-          startListening();
-          
-          // Toast to help user know what to do (show only once per session)
-          if (!sessionStorage.getItem('voiceAssistantHelpShown')) {
-            sessionStorage.setItem('voiceAssistantHelpShown', 'true');
-            setTimeout(() => {
-              toast({
-                title: "Voice Assistant Ready",
-                description: "Say 'Help' to learn about available commands",
-              });
-            }, 1000);
-          }
-        } catch (error) {
-          console.error('Failed to start listening:', error);
-          toast({
-            title: "Voice Assistant Error",
-            description: "Could not initialize microphone. Please check browser permissions.",
-            variant: "destructive",
-          });
+        setIsOpen(true);
+        
+        // Toast to help user know what to do (show only once per session)
+        if (!sessionStorage.getItem('voiceAssistantHelpShown')) {
+          sessionStorage.setItem('voiceAssistantHelpShown', 'true');
+          setTimeout(() => {
+            toast({
+              title: "Voice Assistant Ready",
+              description: "Say 'Help' to learn about available commands",
+            });
+          }, 1500);
         }
-      }, 800); // Increased delay for better initialization
+      }, 200);
     } catch (error) {
       console.error('Failed to open voice assistant:', error);
       toast({
@@ -73,14 +61,16 @@ const VoiceAssistant = () => {
         variant: "destructive",
       });
     }
-  }, [setIsOpen, stopListening, stopSpeaking, startListening]);
+  }, [setIsOpen, stopListening, stopSpeaking]);
 
   // Clean up resources when voice assistant closes
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
         stopListening();
-        stopSpeaking();
+        setTimeout(() => {
+          stopSpeaking();
+        }, 100);
       }, 200);
     }
   }, [isOpen, stopListening, stopSpeaking]);
