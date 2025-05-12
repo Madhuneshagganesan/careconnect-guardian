@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSpeechRecognition } from './useSpeechRecognition';
@@ -52,10 +51,10 @@ export const useVoiceAssistantState = () => {
     // Using a small delay to ensure audio context is ready
     setTimeout(() => {
       if (text && text.trim()) {
-        speakResponse(text, detectedLanguage);
+        speakResponse(text);
       }
     }, 100);
-  }, [speakResponse, detectedLanguage]);
+  }, [speakResponse]);
   
   const { 
     isLoading, 
@@ -141,13 +140,13 @@ export const useVoiceAssistantState = () => {
     if (autoSpeaking && response && !isSpeaking && !isLoading) {
       try {
         setTimeout(() => {
-          speakResponse(response, detectedLanguage);
+          speakResponse(response);
         }, 300);
       } catch (e) {
         console.error('Error auto-speaking response:', e);
       }
     }
-  }, [response, autoSpeaking, isSpeaking, isLoading, speakResponse, detectedLanguage]);
+  }, [response, autoSpeaking, isSpeaking, isLoading, speakResponse]);
   
   // Process command when speech pauses
   useEffect(() => {
