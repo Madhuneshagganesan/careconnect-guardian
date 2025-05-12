@@ -19,41 +19,63 @@ export const useVoiceCommandProcessor = (
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const commandHistoryRef = useRef<{command: string, timestamp: number}[]>([]);
   const processingRetryCountRef = useRef(0);
+  const isProcessingRef = useRef(false);
   
-  // Process commands with debouncing and intelligent detection of duplicates
+  // Process commands with improved deduplication and repeat prevention
   const processCommand = useCallback(async () => {
     // Don't process if there's no transcript
     if (!transcript.trim()) {
       return;
     }
     
-    // Already loading, don't process again
-    if (isLoading) return;
+    // Already loading or already processing, don't process again
+    if (isLoading || isProcessingRef.current) return;
     
-    // Check for duplicate commands in a short time window (command history)
-    const currentTime = Date.now();
-    const recentCommands = commandHistoryRef.current.filter(
-      item => currentTime - item.timestamp < 10000 // Look at last 10 seconds
-    );
-    
-    // Check if this is a duplicate of a recent command
-    const isDuplicate = recentCommands.some(item => {
-      // Compare the first 10 words (if available)
-      const currentWords = transcript.toLowerCase().split(' ').slice(0, 10).join(' ');
-      const historyWords = item.command.toLowerCase().split(' ').slice(0, 10).join(' ');
-      
-      // If the core parts match closely, consider it a duplicate
-      return currentWords === historyWords || 
-             (currentWords.length > 5 && historyWords.includes(currentWords)) ||
-             (historyWords.length > 5 && currentWords.includes(historyWords));
-    });
-    
-    if (isDuplicate && processingRetryCountRef.current < 1) {
-      console.log("Detected duplicate command, skipping processing:", transcript);
-      processingRetryCountRef.current++;
+    // Prevent repeated command processing with a more strict check
+    if (lastProcessedRef.current === transcript) {
+      console.log("Exact duplicate command, skipping:", transcript);
       return;
     }
     
+    // Check for duplicate commands in a longer time window (30 seconds)
+    const currentTime = Date.now();
+    const recentCommands = commandHistoryRef.current.filter(
+      item => currentTime - item.timestamp < 30000
+    );
+    
+    // More thorough duplicate detection
+    const isDuplicate = recentCommands.some(item => {
+      // Compare the first 15 words (if available)
+      const currentWords = transcript.toLowerCase().split(' ').slice(0, 15).join(' ');
+      const historyWords = item.command.toLowerCase().split(' ').slice(0, 15).join(' ');
+      
+      // Exact match
+      if (currentWords === historyWords) return true;
+      
+      // Strong similarity check (contained phrases)
+      if (currentWords.length > 15 && historyWords.includes(currentWords)) return true;
+      if (historyWords.length > 15 && currentWords.includes(historyWords)) return true;
+      
+      // Count repeated words
+      const currentWordsArr = currentWords.split(' ');
+      const historyWordsArr = historyWords.split(' ');
+      let matchCount = 0;
+      
+      currentWordsArr.forEach(word => {
+        if (historyWordsArr.includes(word) && word.length > 3) matchCount++;
+      });
+      
+      // If more than 70% of words match, consider it a duplicate
+      return matchCount > Math.max(currentWordsArr.length, historyWordsArr.length) * 0.7;
+    });
+    
+    if (isDuplicate) {
+      console.log("Detected similar command recently, skipping:", transcript);
+      return;
+    }
+    
+    // Set processing flag to true
+    isProcessingRef.current = true;
     setIsLoading(true);
     console.log("Processing voice command:", transcript);
     
@@ -64,8 +86,8 @@ export const useVoiceCommandProcessor = (
       
       // Add to command history
       commandHistoryRef.current = [
-        ...commandHistoryRef.current.slice(-9), // Keep last 9 commands
-        { command: currentTranscript, timestamp: Date.now() }
+        ...commandHistoryRef.current.slice(-5), // Keep last 5 commands
+        { command: currentTranscript, timestamp: currentTime }
       ];
       
       // Reset retry counter
@@ -77,7 +99,7 @@ export const useVoiceCommandProcessor = (
         processingTimeoutRef.current = null;
       }
       
-      // Intelligent processing of the transcript
+      // Clean the transcript of repetitions before processing
       const processedTranscript = preprocessTranscript(currentTranscript);
       console.log("Processed transcript:", processedTranscript);
       
@@ -116,11 +138,12 @@ export const useVoiceCommandProcessor = (
       // Set timeout to allow processing again after a delay
       processingTimeoutRef.current = setTimeout(() => {
         lastProcessedRef.current = '';
-      }, 2000); // Increased delay to prevent rapid reprocessing
+        isProcessingRef.current = false;
+      }, 3000); // Increased delay to prevent rapid reprocessing
     }
   }, [transcript, navigate, addMessageToHistory, speakResponse, currentPage, setTranscript, isLoading]);
   
-  // Preprocess transcript for better command recognition
+  // Enhanced preprocessing to clean up repetitions
   const preprocessTranscript = (text: string): string => {
     if (!text) return text;
     
@@ -132,8 +155,8 @@ export const useVoiceCommandProcessor = (
     processed = processed.replace(/go to the profile/gi, 'go to profile');
     processed = processed.replace(/can you (go|take me|navigate)/gi, '$1');
     
-    // Step 3: Simplify repetitive phrases and words
-    processed = simplifyRepetitiveTranscript(processed);
+    // Step 3: Remove excessive repetitions (entire repeated phrases)
+    processed = removeRepeatedPhrases(processed);
     
     // Step 4: Normalize spacing
     processed = processed.replace(/\s+/g, ' ').trim();
@@ -141,70 +164,51 @@ export const useVoiceCommandProcessor = (
     return processed;
   };
   
-  // Function to simplify repetitive phrases in transcript
-  const simplifyRepetitiveTranscript = (text: string): string => {
-    if (!text) return text;
-    
-    // Split by spaces
+  // Function to remove entirely repeated phrases
+  const removeRepeatedPhrases = (text: string): string => {
+    // Split into words for easier processing
     const words = text.split(' ');
-    const seenPhrases = new Set<string>();
+    if (words.length <= 5) return text; // Don't process short phrases
     
-    // For longer repetitive phrases (3-4 words)
-    for (let phraseLength = 4; phraseLength >= 2; phraseLength--) {
-      if (words.length <= phraseLength) continue;
+    let result: string[] = [];
+    let i = 0;
+    
+    while (i < words.length) {
+      // Try to find repeating patterns of different lengths
+      let foundRepetition = false;
       
-      for (let i = 0; i <= words.length - phraseLength; i++) {
-        const phrase = words.slice(i, i + phraseLength).join(' ').toLowerCase();
+      // Check for repeating patterns of different sizes (3-8 words)
+      for (let patternLength = 3; patternLength <= 8; patternLength++) {
+        // Don't try patterns longer than half the remaining text
+        if (i + patternLength * 2 > words.length) continue;
         
-        // Count occurrences of this phrase in the text
-        let count = 0;
-        let pos = text.toLowerCase().indexOf(phrase);
+        const pattern = words.slice(i, i + patternLength).join(' ');
+        const nextChunk = words.slice(i + patternLength, i + patternLength * 2).join(' ');
         
-        while (pos !== -1) {
-          count++;
-          pos = text.toLowerCase().indexOf(phrase, pos + 1);
+        // If we found a repetition
+        if (pattern.toLowerCase() === nextChunk.toLowerCase()) {
+          // Add just one occurrence and skip ahead
+          result = result.concat(words.slice(i, i + patternLength));
+          i += patternLength * 2; // Skip both occurrences
+          foundRepetition = true;
+          break;
         }
-        
-        // If phrase repeats more than twice, add to seen phrases
-        if (count >= 2) {
-          seenPhrases.add(phrase);
-        }
+      }
+      
+      if (!foundRepetition) {
+        // No repetition found, add current word and continue
+        result.push(words[i]);
+        i++;
       }
     }
     
-    // Build simplified text by keeping only one occurrence of repeated phrases
-    let currentIndex = 0;
-    let simplifiedText = text;
-    
-    seenPhrases.forEach(phrase => {
-      // Replace multiple occurrences with a single occurrence
-      const regex = new RegExp(`(${phrase}\\s*){2,}`, 'gi');
-      simplifiedText = simplifiedText.replace(regex, `${phrase} `);
-    });
-    
-    // Check for single word repetition (more than 2 letters to avoid removing "I I" etc)
-    const wordMap: Record<string, number> = {};
-    words.forEach(word => {
-      const lowerWord = word.toLowerCase();
-      if (lowerWord.length > 1) { // Only track words with more than 1 letter
-        wordMap[lowerWord] = (wordMap[lowerWord] || 0) + 1;
-      }
-    });
-    
-    // If a word repeats more than 3 times, simplify further
-    Object.entries(wordMap).forEach(([word, count]) => {
-      if (count > 2 && word.length > 2) {
-        const regex = new RegExp(`(${word}\\s*){2,}`, 'gi');
-        simplifiedText = simplifiedText.replace(regex, `${word} `);
-      }
-    });
-    
-    return simplifiedText.trim();
+    return result.join(' ');
   };
   
   // Reset for new command
   const resetCommand = useCallback(() => {
     lastProcessedRef.current = '';
+    isProcessingRef.current = false;
     setResponse('');
     processingRetryCountRef.current = 0;
     if (processingTimeoutRef.current) {

@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 export const useVoiceAssistantState = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [autoSpeaking, setAutoSpeaking] = useState(true);
+  const [isSystemStable, setIsSystemStable] = useState(false);
   const location = useLocation();
   const currentPage = location.pathname;
   
@@ -18,6 +19,7 @@ export const useVoiceAssistantState = () => {
   const speechPauseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialized = useRef(false);
   const stateStabilizedRef = useRef(false);
+  const systemActionsInProgressRef = useRef(0);
   
   // Initialize hooks
   const { 
@@ -48,16 +50,7 @@ export const useVoiceAssistantState = () => {
     clearHistory
   } = useConversationHistory();
 
-  // Initialize command processor with a unified approach to speaking
-  const speakResponseCallback = useCallback((text: string) => {
-    // Using a larger delay to ensure audio context is ready
-    setTimeout(() => {
-      if (text && text.trim() && !isSpeaking) {
-        speakResponse(text);
-      }
-    }, 300);
-  }, [speakResponse, isSpeaking]);
-  
+  // Initialize command processor
   const { 
     isLoading, 
     response, 
@@ -68,20 +61,38 @@ export const useVoiceAssistantState = () => {
     transcript, 
     setTranscript, 
     stopListening, 
-    speakResponseCallback,
+    speakResponse,
     addMessageToHistory,
     currentPage
   );
+
+  // Tracking state transitions for better stability
+  const incrementActionCounter = useCallback(() => {
+    systemActionsInProgressRef.current += 1;
+    setIsSystemStable(false);
+  }, []);
+
+  const decrementActionCounter = useCallback(() => {
+    systemActionsInProgressRef.current = Math.max(0, systemActionsInProgressRef.current - 1);
+    if (systemActionsInProgressRef.current === 0) {
+      setTimeout(() => {
+        setIsSystemStable(true);
+      }, 300);
+    }
+  }, []);
 
   // Handle dialog opening with more stable initialization
   const handleOpenChange = useCallback((open: boolean) => {
     setIsOpen(open);
     
     if (open) {
-      // When opening
+      // When opening, stabilize the system state
+      incrementActionCounter();
       stateStabilizedRef.current = false; // Mark state as unstable
       
+      // Sequential cleanup and initialization
       setTimeout(() => {
+        // First clear state
         setTranscript('');
         resetCommand();
         
@@ -91,14 +102,14 @@ export const useVoiceAssistantState = () => {
           speechPauseTimerRef.current = null;
         }
         
-        // First ensure recognition is stopped
+        // 1. First ensure recognition is stopped
         stopListening();
         
-        // Also ensure speech is stopped
+        // 2. Then ensure speech is stopped with a delay
         setTimeout(() => {
           stopSpeaking();
           
-          // Then wait for cleanup before starting again
+          // 3. Wait for cleanup before starting again
           setTimeout(() => {
             isInitialized.current = true;
             processingRef.current = false;
@@ -109,14 +120,17 @@ export const useVoiceAssistantState = () => {
               if (!isListening) {
                 startListening();
               }
+              decrementActionCounter();
             } catch (e) {
               console.error('Failed to start listening on dialog open:', e);
+              decrementActionCounter();
             }
-          }, 1000); // Increased delay to ensure proper cleanup
-        }, 500);
-      }, 300);
+          }, 1500); // Increased delay to ensure proper cleanup
+        }, 800);
+      }, 500);
     } else {
       // When closing, perform thorough cleanup
+      incrementActionCounter();
       stateStabilizedRef.current = false; // Mark state as unstable
       clearHistory();
       setResponse('');
@@ -130,9 +144,11 @@ export const useVoiceAssistantState = () => {
         
         setTimeout(() => {
           stopListening();
-        }, 500);
+          decrementActionCounter();
+        }, 800);
       } catch (e) {
         console.error('Error during cleanup on close:', e);
+        decrementActionCounter();
       }
       
       if (speechPauseTimerRef.current) {
@@ -140,7 +156,8 @@ export const useVoiceAssistantState = () => {
         speechPauseTimerRef.current = null;
       }
     }
-  }, [clearHistory, isListening, resetCommand, setResponse, setTranscript, startListening, stopListening, stopSpeaking]);
+  }, [clearHistory, isListening, resetCommand, setResponse, setTranscript, startListening, 
+      stopListening, stopSpeaking, incrementActionCounter, decrementActionCounter]);
   
   // Listen for voice assistant close event
   useEffect(() => {
@@ -155,27 +172,27 @@ export const useVoiceAssistantState = () => {
     };
   }, []);
   
-  // Auto-speak responses when enabled with improved timing
+  // Auto-speak responses with improved timing
   useEffect(() => {
     if (autoSpeaking && response && !isSpeaking && !isLoading && stateStabilizedRef.current) {
       try {
         setTimeout(() => {
-          if (!isSpeaking && response) {
+          if (!isSpeaking && response && stateStabilizedRef.current) {
             speakResponse(response);
           }
-        }, 600); // Increased delay for stability
+        }, 800); // Increased delay for stability
       } catch (e) {
         console.error('Error auto-speaking response:', e);
       }
     }
   }, [response, autoSpeaking, isSpeaking, isLoading, speakResponse]);
   
-  // Process command when speech pauses with improved timing
+  // Process command when speech pauses with improved debouncing
   useEffect(() => {
     // Only set up listener when dialog is open and state is stabilized
     if (!isOpen || !isInitialized.current || !stateStabilizedRef.current) return;
     
-    // Process after pause in speech
+    // Process after significant pause in speech
     if (transcript && transcript.trim() && isListening && !isLoading && !processingRef.current) {
       // Clear existing timer
       if (speechPauseTimerRef.current) {
@@ -188,14 +205,21 @@ export const useVoiceAssistantState = () => {
           // Set processing flag to prevent multiple processing
           processingRef.current = true;
           
-          console.log("Processing transcript:", transcript);
+          console.log("Processing transcript after pause:", transcript);
           
           // Add user input to conversation history
           addMessageToHistory('user', transcript);
           
           try {
             // Process the command
+            incrementActionCounter();
             processCommand();
+            
+            // Reset processing flag after delay to allow new commands
+            setTimeout(() => {
+              processingRef.current = false;
+              decrementActionCounter();
+            }, 3000);
           } catch (e) {
             console.error('Error processing command after pause:', e);
             
@@ -204,23 +228,16 @@ export const useVoiceAssistantState = () => {
             addMessageToHistory('assistant', errorMessage);
             setResponse(errorMessage);
             
-            if (autoSpeaking) {
-              // Wait for system to stabilize before speaking
-              setTimeout(() => {
-                if (!isSpeaking) {
-                  speakResponse(errorMessage);
-                }
-              }, 500);
-            }
-          } finally {
-            // Reset processing flag after delay to allow new commands
+            processingRef.current = false;
+            decrementActionCounter();
+            
+            // Clear transcript
             setTimeout(() => {
-              processingRef.current = false;
               setTranscript('');
-            }, 2000);
+            }, 500);
           }
         }
-      }, 2000); // Increased pause time for better accuracy
+      }, 2500); // Increased pause time for better accuracy
     }
     
     return () => {
@@ -236,10 +253,9 @@ export const useVoiceAssistantState = () => {
     processCommand, 
     addMessageToHistory, 
     isOpen, 
-    autoSpeaking, 
-    speakResponse,
     setTranscript,
-    isSpeaking
+    incrementActionCounter,
+    decrementActionCounter
   ]);
 
   // Cleanup on unmount with improved stability
@@ -252,7 +268,7 @@ export const useVoiceAssistantState = () => {
         // Then stop listening with a delay
         setTimeout(() => {
           stopListening();
-        }, 500);
+        }, 800);
       } catch (e) {
         console.error('Error during cleanup on unmount:', e);
       }
@@ -274,7 +290,7 @@ export const useVoiceAssistantState = () => {
       setTimeout(() => {
         stopListening();
         setTranscript('');
-      }, 500);
+      }, 800);
     }
   }, [isOpen, stopListening, stopSpeaking, setTranscript]);
 
@@ -300,6 +316,7 @@ export const useVoiceAssistantState = () => {
     currentVoice,
     setVoice,
     detectedLanguage,
-    setDetectedLanguage
+    setDetectedLanguage,
+    isSystemStable
   };
 };

@@ -29,8 +29,13 @@ const VoiceAssistant = () => {
     currentVoice,
     setVoice,
     detectedLanguage,
-    setDetectedLanguage
+    setDetectedLanguage,
+    isSystemStable
   } = useVoiceAssistantState();
+  
+  // Track errors for better error handling
+  const errorCount = React.useRef(0);
+  const lastErrorTime = React.useRef(0);
   
   const handleOpenDialog = useCallback(() => {
     try {
@@ -53,15 +58,30 @@ const VoiceAssistant = () => {
                 title: "Voice Assistant Ready",
                 description: "Say 'Help' to learn about available commands",
               });
-            }, 1500);
+            }, 1800);
           }
-        }, 500);
-      }, 300);
+        }, 800);
+      }, 500);
     } catch (error) {
       console.error('Failed to open voice assistant:', error);
+      
+      // Track errors
+      const now = Date.now();
+      if (now - lastErrorTime.current < 10000) {
+        errorCount.current++;
+      } else {
+        errorCount.current = 1;
+      }
+      lastErrorTime.current = now;
+      
+      // If too many errors, show a more helpful message
+      const message = errorCount.current > 2
+        ? "Voice assistant is having trouble. Please try refreshing the page."
+        : "Could not open voice assistant. Please try again.";
+        
       toast({
         title: "Voice Assistant Error",
-        description: "Could not open voice assistant. Please try again.",
+        description: message,
         variant: "destructive",
       });
     }
@@ -73,12 +93,19 @@ const VoiceAssistant = () => {
       // First stop speaking
       stopSpeaking();
       
-      // Then stop listening with a delay to ensure they don't conflict
+      // Then stop listening with a longer delay to ensure they don't conflict
       setTimeout(() => {
         stopListening();
-      }, 500);
+      }, 800);
     }
   }, [isOpen, stopListening, stopSpeaking]);
+  
+  // Reset error tracking when system stabilizes
+  useEffect(() => {
+    if (isSystemStable) {
+      errorCount.current = 0;
+    }
+  }, [isSystemStable]);
   
   // Handle speech synthesis errors without recursive calls
   useEffect(() => {
@@ -86,24 +113,29 @@ const VoiceAssistant = () => {
       console.log("Speech synthesis error detected");
       
       // Only attempt to retry if not already speaking and auto-speak is on
-      if (response && !isSpeaking && autoSpeaking) {
+      // and there's a valid response and we're not in an error cascade
+      if (response && !isSpeaking && autoSpeaking && errorCount.current < 3 && isSystemStable) {
         // Short delay before retry
         setTimeout(() => {
           try {
             // Only try to speak if we're not already speaking
-            if (!isSpeaking) {
+            if (!isSpeaking && isSystemStable) {
               speakResponse(response);
             }
           } catch (err) {
             console.error('Fallback speech synthesis attempt failed:', err);
+            errorCount.current++;
+            
             // If speech fails completely, show a toast with the response
-            toast({
-              title: "Voice Output",
-              description: response.length > 60 ? response.substring(0, 60) + "..." : response,
-              duration: 5000,
-            });
+            if (errorCount.current >= 2) {
+              toast({
+                title: "Voice Output",
+                description: response.length > 60 ? response.substring(0, 60) + "..." : response,
+                duration: 5000,
+              });
+            }
           }
-        }, 800); // Increased delay for better stability
+        }, 1200); // Increased delay for better stability
       }
     };
     
@@ -112,7 +144,7 @@ const VoiceAssistant = () => {
     return () => {
       window.removeEventListener('speech-synthesis-error', handleSpeechSynthesisError);
     };
-  }, [response, isSpeaking, autoSpeaking, speakResponse]);
+  }, [response, isSpeaking, autoSpeaking, speakResponse, isSystemStable]);
   
   return (
     <>

@@ -13,6 +13,8 @@ export const useSpeechSynthesis = () => {
   const attemptCountRef = useRef(0);
   const utterancesQueue = useRef<Array<{text: string}>>([]);
   const processingUtteranceRef = useRef(false);
+  const lastSpokenTextRef = useRef<string>('');
+  const lastSpeakTimeRef = useRef<number>(0);
   
   // Initialize speech synthesis on mount
   useEffect(() => {
@@ -71,7 +73,7 @@ export const useSpeechSynthesis = () => {
     };
   }, []);
   
-  // Process utterances queue
+  // Process utterances queue with debouncing
   const processQueue = useCallback(() => {
     if (processingUtteranceRef.current || utterancesQueue.current.length === 0) {
       return;
@@ -89,20 +91,58 @@ export const useSpeechSynthesis = () => {
   const speakTextDirectly = useCallback((text: string) => {
     if (!synthRef.current || !window.speechSynthesis) {
       processingUtteranceRef.current = false;
-      processQueue(); // Try next item in queue
+      setTimeout(() => processQueue(), 300);
       return;
     }
     
     if (!text || !text.trim()) {
       processingUtteranceRef.current = false;
-      processQueue(); // Try next item in queue
+      setTimeout(() => processQueue(), 300);
       return;
     }
     
+    // Anti-stuttering: prevent identical text repeated within 2 seconds
+    const currentTime = Date.now();
+    if (text === lastSpokenTextRef.current && currentTime - lastSpeakTimeRef.current < 2000) {
+      console.log('Preventing duplicate speech within 2 seconds', text);
+      processingUtteranceRef.current = false;
+      setTimeout(() => processQueue(), 300);
+      return;
+    }
+    
+    // Update last spoken information
+    lastSpokenTextRef.current = text;
+    lastSpeakTimeRef.current = currentTime;
+    
     try {
-      // Cancel any ongoing speech first
-      stopSpeaking();
+      // Cancel any ongoing speech first with safety checks
+      if (synthRef.current) {
+        try {
+          synthRef.current.cancel();
+          // Short delay to ensure cancellation is complete
+          setTimeout(() => {
+            speakWithRetry(text);
+          }, 100);
+        } catch (e) {
+          console.error('Error canceling previous speech:', e);
+          speakWithRetry(text);
+        }
+      } else {
+        speakWithRetry(text);
+      }
+    } catch (error) {
+      console.error('Error with speech synthesis:', error);
+      setIsSpeaking(false);
+      currentUtteranceRef.current = null;
+      processingUtteranceRef.current = false;
       
+      setTimeout(() => processQueue(), 300);
+    }
+  }, [processQueue]);
+  
+  // Helper function to speak with retry mechanism
+  const speakWithRetry = useCallback((text: string) => {
+    try {
       // Create utterance
       const utterance = new SpeechSynthesisUtterance(text);
       currentUtteranceRef.current = utterance;
@@ -113,11 +153,11 @@ export const useSpeechSynthesis = () => {
       }
       
       // Improve speech quality
-      utterance.rate = 1.0; // Normal rate
+      utterance.rate = 0.95; // Slightly slower for clarity
       utterance.pitch = 1.0; // Normal pitch
       utterance.volume = 1.0; // Full volume
       
-      // Set callbacks
+      // Create new handlers for this utterance
       utterance.onstart = () => {
         setIsSpeaking(true);
         attemptCountRef.current = 0; // Reset attempt counter on successful start
@@ -128,13 +168,8 @@ export const useSpeechSynthesis = () => {
         currentUtteranceRef.current = null;
         processingUtteranceRef.current = false;
         
-        // Process next item in queue
-        setTimeout(() => processQueue(), 300);
-        
-        // Reset speech synthesis in some browsers to prevent issues
-        if (navigator.userAgent.includes('Chrome')) {
-          synthRef.current?.cancel();
-        }
+        // Process next item in queue with delay
+        setTimeout(() => processQueue(), 500);
       };
       
       utterance.onerror = (event) => {
@@ -143,7 +178,7 @@ export const useSpeechSynthesis = () => {
         // Only try a limited number of times before giving up
         attemptCountRef.current += 1;
         
-        if (attemptCountRef.current <= 3) {
+        if (attemptCountRef.current <= 2) {
           console.log(`Speech synthesis error, retrying (attempt ${attemptCountRef.current})`);
           
           // Try again after a delay with progressive backoff
@@ -152,39 +187,36 @@ export const useSpeechSynthesis = () => {
               synthRef.current.cancel();
               
               try {
-                // Try with a slightly modified text to avoid same error
-                const modifiedText = text + " ";
-                const newUtterance = new SpeechSynthesisUtterance(modifiedText);
+                // Create a new utterance to avoid reusing the one with error
+                const newUtterance = new SpeechSynthesisUtterance(text);
                 
-                // Try with a different voice if available
-                if (voices.length > 1) {
-                  const alternateVoice = voices.find(v => v !== currentVoice) || voices[0];
-                  newUtterance.voice = alternateVoice;
-                } else if (currentVoice) {
+                if (currentVoice) {
                   newUtterance.voice = currentVoice;
                 }
                 
-                newUtterance.rate = 1.0;
+                newUtterance.rate = 0.9; // Even slower on retry
                 newUtterance.pitch = 1.0;
                 
-                // Fixed: Create new handlers instead of referencing original ones
+                // Create fresh handlers
                 newUtterance.onend = () => {
                   setIsSpeaking(false);
                   currentUtteranceRef.current = null;
                   processingUtteranceRef.current = false;
-                  
-                  // Process next item in queue
-                  setTimeout(() => processQueue(), 300);
+                  setTimeout(() => processQueue(), 500);
                 };
                 
-                newUtterance.onerror = (retryError) => {
-                  console.error('Error during speech synthesis retry:', retryError);
+                newUtterance.onerror = () => {
                   setIsSpeaking(false);
                   currentUtteranceRef.current = null;
                   processingUtteranceRef.current = false;
+                  setTimeout(() => processQueue(), 500);
                   
-                  // Process next item in queue
-                  setTimeout(() => processQueue(), 300);
+                  // Display toast as fallback
+                  toast({
+                    title: "Voice Output",
+                    description: text.length > 100 ? text.substring(0, 100) + "..." : text,
+                    duration: 5000,
+                  });
                 };
                 
                 window.speechSynthesis.speak(newUtterance);
@@ -194,14 +226,12 @@ export const useSpeechSynthesis = () => {
                 setIsSpeaking(false);
                 currentUtteranceRef.current = null;
                 processingUtteranceRef.current = false;
-                
-                // Process next item in queue
-                setTimeout(() => processQueue(), 300);
+                setTimeout(() => processQueue(), 500);
               }
             }
-          }, attemptCountRef.current * 300); // Progressive backoff
+          }, attemptCountRef.current * 800); // Longer backoff
         } else {
-          // Give up after too many attempts and show the message as text
+          // Give up after too many attempts
           console.log('Too many speech synthesis errors, displaying as text');
           toast({
             title: "Voice Output",
@@ -212,99 +242,36 @@ export const useSpeechSynthesis = () => {
           setIsSpeaking(false);
           currentUtteranceRef.current = null;
           processingUtteranceRef.current = false;
-          
-          // Process next item in queue
-          setTimeout(() => processQueue(), 300);
+          setTimeout(() => processQueue(), 500);
         }
       };
       
-      // Chrome bug workaround - split long text into paragraphs
-      if (text.length > 100 && navigator.userAgent.includes('Chrome')) {
+      // For short texts (under 100 chars), use direct approach
+      if (text.length <= 100) {
+        window.speechSynthesis.speak(utterance);
+      } else {
+        // For longer texts, split by sentences to prevent cutoffs
         const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
         
-        // Speak first sentence immediately
-        const firstSentence = new SpeechSynthesisUtterance(sentences[0]);
-        if (currentVoice) firstSentence.voice = currentVoice;
-        firstSentence.rate = 1.0;
-        
-        // Fixed: Create new handlers instead of referencing
-        firstSentence.onend = () => {
-          setIsSpeaking(false);
-          currentUtteranceRef.current = null;
-          processingUtteranceRef.current = false;
-          
-          // Process next item in queue
-          setTimeout(() => processQueue(), 300);
-        };
-        
-        firstSentence.onerror = (errorEvent) => {
-          console.error('Speech synthesis first sentence error:', errorEvent);
-          setIsSpeaking(false);
-          currentUtteranceRef.current = null;
-          processingUtteranceRef.current = false;
-          
-          // Process next item in queue
-          setTimeout(() => processQueue(), 300);
-        };
-        
-        window.speechSynthesis.speak(firstSentence);
-        currentUtteranceRef.current = firstSentence;
-        
-        // Add remaining sentences to queue if there are more
+        // Queue all sentences except first
         if (sentences.length > 1) {
           for (let i = 1; i < sentences.length; i++) {
             utterancesQueue.current.push({ text: sentences[i] });
           }
         }
-      } else {
-        // Speak normally for short text
+        
+        // Speak first sentence immediately
         window.speechSynthesis.speak(utterance);
       }
       
-      // Chrome bug workaround - prevent cutting off
-      if (navigator.userAgent.includes('Chrome')) {
-        const intervalId = setInterval(() => {
-          if (synthRef.current && isSpeaking && currentUtteranceRef.current) {
-            synthRef.current.pause();
-            synthRef.current.resume();
-          } else {
-            clearInterval(intervalId);
-          }
-        }, 5000);
-        
-        // Fixed: Create new handlers instead of referencing
-        utterance.onend = () => {
-          clearInterval(intervalId);
-          setIsSpeaking(false);
-          currentUtteranceRef.current = null;
-          processingUtteranceRef.current = false;
-          
-          // Process next item in queue
-          setTimeout(() => processQueue(), 300);
-        };
-        
-        utterance.onerror = (errorEvent) => {
-          clearInterval(intervalId);
-          console.error('Speech synthesis error in Chrome workaround:', errorEvent);
-          setIsSpeaking(false);
-          currentUtteranceRef.current = null;
-          processingUtteranceRef.current = false;
-          
-          // Process next item in queue
-          setTimeout(() => processQueue(), 300);
-        };
-      }
-      
     } catch (error) {
-      console.error('Error with speech synthesis:', error);
+      console.error('Error in speakWithRetry:', error);
       setIsSpeaking(false);
       currentUtteranceRef.current = null;
       processingUtteranceRef.current = false;
-      
-      // Process next item in queue
-      setTimeout(() => processQueue(), 300);
+      setTimeout(() => processQueue(), 500);
     }
-  }, [voices, currentVoice, isSpeaking, processQueue]);
+  }, [currentVoice, processQueue]);
   
   // Stop speaking with improved cleanup
   const stopSpeaking = useCallback(() => {
@@ -315,6 +282,9 @@ export const useSpeechSynthesis = () => {
         currentUtteranceRef.current = null;
         processingUtteranceRef.current = false;
         utterancesQueue.current = []; // Clear queue
+        
+        // Reset last spoken text tracking
+        lastSpokenTextRef.current = '';
         
         // In some browsers, additional cleanup might be needed
         if (audioContextRef.current && audioContextRef.current.state === 'running') {
@@ -327,12 +297,15 @@ export const useSpeechSynthesis = () => {
     }
   }, []);
   
-  // Public speak response function
+  // Public speak response function with anti-stuttering protection
   const speakResponse = useCallback((text: string) => {
     if (!text || !text.trim()) return;
     
+    // Anti-stuttering: deduplicate repeated phrases
+    const cleanedText = deduplicateText(text);
+    
     // Add to queue and process
-    utterancesQueue.current.push({ text });
+    utterancesQueue.current.push({ text: cleanedText });
     
     if (!processingUtteranceRef.current) {
       processQueue();
@@ -342,6 +315,40 @@ export const useSpeechSynthesis = () => {
   const setVoice = useCallback((voice: SpeechSynthesisVoice) => {
     setCurrentVoice(voice);
   }, []);
+  
+  // Helper function to deduplicate text
+  const deduplicateText = (text: string): string => {
+    if (!text || text.length < 10) return text;
+    
+    // Find and remove repeated phrases (3+ words)
+    const words = text.split(' ');
+    const phrases: string[] = [];
+    const result: string[] = [];
+    
+    for (let i = 0; i < words.length; i++) {
+      let dupFound = false;
+      
+      // Check for 3+ word phrases
+      for (let len = 3; len <= 6; len++) {
+        if (i + len <= words.length) {
+          const phrase = words.slice(i, i + len).join(' ');
+          
+          if (phrases.includes(phrase)) {
+            dupFound = true;
+            break;
+          }
+          
+          phrases.push(phrase);
+        }
+      }
+      
+      if (!dupFound) {
+        result.push(words[i]);
+      }
+    }
+    
+    return result.join(' ');
+  };
   
   return {
     isSpeaking,
