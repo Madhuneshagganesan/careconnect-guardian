@@ -15,6 +15,7 @@ export const useSpeechRecognition = () => {
   const consecutiveErrorsRef = useRef(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isStartingRef = useRef(false); // Flag to prevent multiple start attempts
 
   // Check browser support on mount
   useEffect(() => {
@@ -76,6 +77,7 @@ export const useSpeechRecognition = () => {
         recognitionRef.current.onstart = () => {
           console.log('Speech recognition started');
           setIsListening(true);
+          isStartingRef.current = false; // Reset starting flag once started
           consecutiveErrorsRef.current = 0; // Reset error counter on successful start
         };
         
@@ -124,6 +126,7 @@ export const useSpeechRecognition = () => {
         
         recognitionRef.current.onerror = (event) => {
           console.error('Speech recognition error:', event.error);
+          isStartingRef.current = false; // Reset starting flag on error
           
           // Increment consecutive errors counter
           consecutiveErrorsRef.current++;
@@ -172,6 +175,7 @@ export const useSpeechRecognition = () => {
 
         recognitionRef.current.onend = () => {
           console.log('Speech recognition ended');
+          isStartingRef.current = false; // Reset starting flag on end
           
           // If we're supposed to be listening but recognition stopped, try to restart
           if (isListening) {
@@ -186,6 +190,7 @@ export const useSpeechRecognition = () => {
     } catch (error) {
       console.error('Error initializing speech recognition:', error);
       setIsSupported(false);
+      isStartingRef.current = false; // Reset starting flag on error
     }
   }, [detectedLanguage, isListening]);
 
@@ -199,6 +204,9 @@ export const useSpeechRecognition = () => {
     
     // Don't restart if we intentionally stopped
     if (!isListening) return;
+    
+    // Don't attempt to restart if we're already in the process of starting
+    if (isStartingRef.current) return;
     
     const backoffTime = Math.min(300 * Math.pow(2, consecutiveErrorsRef.current), 10000);
     console.log(`Attempting to restart speech recognition in ${backoffTime}ms (attempt #${consecutiveErrorsRef.current + 1})`);
@@ -214,10 +222,14 @@ export const useSpeechRecognition = () => {
           // Small delay before starting again
           setTimeout(() => {
             try {
+              // Set flag to indicate we're starting
+              isStartingRef.current = true;
+              
               recognitionRef.current?.start();
               console.log('Speech recognition restarted');
             } catch (e) {
               console.error('Failed to restart speech recognition:', e);
+              isStartingRef.current = false; // Reset flag on error
               
               // If we have a critical error, try reinitializing completely
               if (consecutiveErrorsRef.current > 5) {
@@ -227,10 +239,12 @@ export const useSpeechRecognition = () => {
                 
                 setTimeout(() => {
                   try {
+                    isStartingRef.current = true;
                     recognitionRef.current?.start();
                   } catch (e) {
                     console.error('Failed to start after reinitialization:', e);
                     setIsListening(false);
+                    isStartingRef.current = false;
                   }
                 }, 500);
               } else {
@@ -242,6 +256,7 @@ export const useSpeechRecognition = () => {
       } catch (e) {
         console.error('Failed to restart speech recognition:', e);
         setIsListening(false);
+        isStartingRef.current = false;
       }
     }, backoffTime);
   }, [isListening, initializeRecognition]);
@@ -285,6 +300,12 @@ export const useSpeechRecognition = () => {
       return;
     }
     
+    // Don't try to start if we're already in the process of starting
+    if (isStartingRef.current) {
+      console.log('Already attempting to start, wait a moment');
+      return;
+    }
+    
     // Make sure recognition is initialized
     if (!isInitializedRef.current) {
       initializeRecognition();
@@ -295,6 +316,9 @@ export const useSpeechRecognition = () => {
     
     try {
       if (recognitionRef.current) {
+        // Set flag to indicate we're starting
+        isStartingRef.current = true;
+        
         // Reset transcript when starting new listening session
         setTranscript('');
         setInterimTranscript('');
@@ -307,22 +331,32 @@ export const useSpeechRecognition = () => {
         // Start recognition after a small delay to ensure everything is set up
         setTimeout(() => {
           try {
-            if (!isListening) {
-              recognitionRef.current?.start();
+            if (!isListening && recognitionRef.current) {
+              recognitionRef.current.start();
               console.log('Speech recognition started after delay');
             }
           } catch (e) {
             console.error('Failed to start speech recognition after delay:', e);
             setIsListening(false);
+            isStartingRef.current = false; // Reset flag on error
             
             // If starting failed with error about already started, try stopping and starting again
             if (e instanceof DOMException && e.name === 'InvalidStateError') {
               console.log('Recognition seems to be already running, trying to restart it');
               try {
                 recognitionRef.current?.stop();
-                setTimeout(() => recognitionRef.current?.start(), 300);
+                setTimeout(() => {
+                  try {
+                    isStartingRef.current = true;
+                    recognitionRef.current?.start();
+                  } catch (stopError) {
+                    console.error('Failed to restart recognition:', stopError);
+                    isStartingRef.current = false;
+                  }
+                }, 500);
               } catch (stopError) {
-                console.error('Failed to stop/restart recognition:', stopError);
+                console.error('Failed to stop recognition:', stopError);
+                isStartingRef.current = false;
               }
             }
             
@@ -332,11 +366,12 @@ export const useSpeechRecognition = () => {
               variant: "destructive",
             });
           }
-        }, 100);
+        }, 300); // Increased delay for better reliability
       }
     } catch (error) {
       console.error('Failed to start speech recognition:', error);
       setIsListening(false);
+      isStartingRef.current = false; // Reset flag on error
       toast({
         title: "Recognition Error",
         description: "Could not start voice recognition. Please try again.",
@@ -355,6 +390,7 @@ export const useSpeechRecognition = () => {
       
       setIsListening(false);
       setInterimTranscript('');
+      isStartingRef.current = false; // Reset starting flag
       
       // Clear all timers
       if (restartTimerRef.current) {
@@ -374,6 +410,7 @@ export const useSpeechRecognition = () => {
     } catch (e) {
       console.error('Error stopping speech recognition:', e);
       setIsListening(false);
+      isStartingRef.current = false; // Reset starting flag on error
     }
   }, []);
 

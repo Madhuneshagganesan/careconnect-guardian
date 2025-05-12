@@ -85,52 +85,27 @@ const VoiceAssistant = () => {
     }
   }, [isOpen, stopListening, stopSpeaking]);
   
-  // Handle speech synthesis errors by implementing an advanced retry mechanism
+  // Handle speech synthesis errors by implementing a simplified retry mechanism
   useEffect(() => {
-    const handleSpeechSynthesisError = (e: any) => {
-      console.log("Speech synthesis error detected, attempting recovery");
+    const handleSpeechSynthesisError = () => {
+      console.log("Speech synthesis error detected");
       
+      // Only attempt to retry if not already speaking and auto-speak is on
       if (response && !isSpeaking && autoSpeaking) {
-        // Implement progressive fallback strategy
-        let attemptCount = 0;
-        const maxAttempts = 3;
-        
-        const attemptSpeech = () => {
-          if (attemptCount >= maxAttempts) {
-            console.error("Max speech synthesis retry attempts reached");
-            // If voice fails, display a toast so user still gets the information
+        // Short delay before retry
+        setTimeout(() => {
+          try {
+            speakResponse(response);
+          } catch (err) {
+            console.error('Fallback speech synthesis attempt failed:', err);
+            // If speech fails completely, show a toast with the response
             toast({
-              title: "Voice Output Failed",
+              title: "Voice Output",
               description: response.length > 60 ? response.substring(0, 60) + "..." : response,
               duration: 5000,
             });
-            return;
           }
-          
-          setTimeout(() => {
-            try {
-              // Try with a delay that increases with each attempt
-              console.log(`Speech synthesis retry attempt ${attemptCount + 1}`);
-              
-              // If this isn't the first attempt, try with a different voice
-              if (attemptCount > 0 && voices.length > 1) {
-                // Use a different voice for retry
-                const fallbackVoice = voices.find(v => v !== currentVoice) || voices[0];
-                speakResponse(response);
-              } else {
-                speakResponse(response);
-              }
-              
-              attemptCount++;
-            } catch (err) {
-              console.error(`Fallback speech synthesis attempt ${attemptCount + 1} failed:`, err);
-              attemptCount++;
-              attemptSpeech(); // Try again with next strategy
-            }
-          }, 300 * (attemptCount + 1)); // Progressive backoff
-        };
-        
-        attemptSpeech();
+        }, 300);
       }
     };
     
@@ -139,7 +114,7 @@ const VoiceAssistant = () => {
     return () => {
       window.removeEventListener('speech-synthesis-error', handleSpeechSynthesisError);
     };
-  }, [response, isSpeaking, autoSpeaking, speakResponse, voices, currentVoice]);
+  }, [response, isSpeaking, autoSpeaking, speakResponse]);
   
   return (
     <>
