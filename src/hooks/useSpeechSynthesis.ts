@@ -9,6 +9,7 @@ export const useSpeechSynthesis = () => {
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const isInitialized = useRef(false);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   
   // Initialize speech synthesis on mount
   useEffect(() => {
@@ -41,6 +42,13 @@ export const useSpeechSynthesis = () => {
       if (synthRef.current.onvoiceschanged !== undefined) {
         synthRef.current.onvoiceschanged = loadVoices;
       }
+
+      // Create Audio Context for advanced audio processing
+      try {
+        audioContextRef.current = new AudioContext();
+      } catch (e) {
+        console.warn('AudioContext not supported, using standard speech synthesis');
+      }
     }
     
     return () => {
@@ -48,11 +56,15 @@ export const useSpeechSynthesis = () => {
         synthRef.current.cancel();
         setIsSpeaking(false);
       }
+      
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(console.error);
+      }
     };
   }, []);
   
-  // Speak response
-  const speakResponse = useCallback((text: string, language?: string) => {
+  // Speak response with enhanced quality and fallbacks
+  const speakResponse = useCallback((text: string, language?: string, overrideVoice?: SpeechSynthesisVoice) => {
     if (!synthRef.current || !window.speechSynthesis) {
       toast({
         title: "Not Supported",
@@ -73,7 +85,9 @@ export const useSpeechSynthesis = () => {
       currentUtteranceRef.current = utterance;
       
       // Set voice based on language or default to current voice
-      if (language && voices.length > 0) {
+      if (overrideVoice) {
+        utterance.voice = overrideVoice;
+      } else if (language && voices.length > 0) {
         const langCode = language.split('-')[0];
         const matchingVoice = voices.find(v => v.lang.startsWith(langCode));
         
@@ -86,16 +100,30 @@ export const useSpeechSynthesis = () => {
         utterance.voice = currentVoice;
       }
       
+      // Improve speech quality
+      utterance.rate = 1.0; // Normal rate
+      utterance.pitch = 1.0; // Normal pitch
+      utterance.volume = 1.0; // Full volume
+      
       // Set callbacks
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => {
         setIsSpeaking(false);
         currentUtteranceRef.current = null;
+        
+        // Reset speech synthesis in some browsers to prevent issues
+        if (navigator.userAgent.includes('Chrome')) {
+          window.speechSynthesis.cancel();
+        }
       };
+      
       utterance.onerror = (event) => {
         console.error('Speech synthesis error:', event);
         setIsSpeaking(false);
         currentUtteranceRef.current = null;
+        
+        // Dispatch custom event for error handling
+        window.dispatchEvent(new CustomEvent('speech-synthesis-error', { detail: event }));
       };
       
       // Speak
@@ -106,10 +134,41 @@ export const useSpeechSynthesis = () => {
       setTimeout(() => {
         if (currentUtteranceRef.current === utterance && !isSpeaking) {
           console.log('Speech synthesis may be stuck, attempting restart');
-          window.speechSynthesis.cancel();
-          window.speechSynthesis.speak(utterance);
+          
+          // Force resume in case it's paused
+          window.speechSynthesis.resume();
+          
+          // If still not working, try again
+          setTimeout(() => {
+            if (currentUtteranceRef.current === utterance && !isSpeaking) {
+              window.speechSynthesis.cancel();
+              window.speechSynthesis.speak(utterance);
+            }
+          }, 500);
         }
       }, 1000);
+      
+      // Prevent Chrome bug of cutting off long speeches
+      const preventSpeechCutoff = () => {
+        if (isSpeaking && currentUtteranceRef.current) {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        }
+      };
+      
+      const intervalId = setInterval(preventSpeechCutoff, 5000);
+      utterance.onend = () => {
+        clearInterval(intervalId);
+        setIsSpeaking(false);
+        currentUtteranceRef.current = null;
+      };
+      utterance.onerror = (event) => {
+        clearInterval(intervalId);
+        console.error('Speech synthesis error:', event);
+        setIsSpeaking(false);
+        currentUtteranceRef.current = null;
+        window.dispatchEvent(new CustomEvent('speech-synthesis-error', { detail: event }));
+      };
       
     } catch (error) {
       console.error('Error with speech synthesis:', error);
@@ -118,13 +177,19 @@ export const useSpeechSynthesis = () => {
     }
   }, [voices, currentVoice, isSpeaking]);
   
-  // Stop speaking
+  // Stop speaking with improved cleanup
   const stopSpeaking = useCallback(() => {
     if (synthRef.current) {
       try {
         synthRef.current.cancel();
         setIsSpeaking(false);
         currentUtteranceRef.current = null;
+        
+        // In some browsers, additional cleanup might be needed
+        if (audioContextRef.current && audioContextRef.current.state === 'running') {
+          // Suspend audio context to free up resources
+          audioContextRef.current.suspend().catch(console.error);
+        }
       } catch (error) {
         console.error('Error stopping speech synthesis:', error);
       }

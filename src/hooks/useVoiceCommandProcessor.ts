@@ -1,3 +1,4 @@
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -16,16 +17,42 @@ export const useVoiceCommandProcessor = (
   const [response, setResponse] = useState('');
   const lastProcessedRef = useRef('');
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const commandHistoryRef = useRef<{command: string, timestamp: number}[]>([]);
+  const processingRetryCountRef = useRef(0);
   
-  // Process commands with debouncing to prevent multiple executions
+  // Process commands with debouncing and intelligent detection of duplicates
   const processCommand = useCallback(async () => {
-    // Don't process if there's no transcript or if it's the same as last processed
-    if (!transcript.trim() || transcript === lastProcessedRef.current) {
+    // Don't process if there's no transcript
+    if (!transcript.trim()) {
       return;
     }
     
     // Already loading, don't process again
     if (isLoading) return;
+    
+    // Check for duplicate commands in a short time window (command history)
+    const currentTime = Date.now();
+    const recentCommands = commandHistoryRef.current.filter(
+      item => currentTime - item.timestamp < 10000 // Look at last 10 seconds
+    );
+    
+    // Check if this is a duplicate of a recent command
+    const isDuplicate = recentCommands.some(item => {
+      // Compare the first 10 words (if available)
+      const currentWords = transcript.toLowerCase().split(' ').slice(0, 10).join(' ');
+      const historyWords = item.command.toLowerCase().split(' ').slice(0, 10).join(' ');
+      
+      // If the core parts match closely, consider it a duplicate
+      return currentWords === historyWords || 
+             (currentWords.length > 5 && historyWords.includes(currentWords)) ||
+             (historyWords.length > 5 && currentWords.includes(historyWords));
+    });
+    
+    if (isDuplicate && processingRetryCountRef.current < 1) {
+      console.log("Detected duplicate command, skipping processing:", transcript);
+      processingRetryCountRef.current++;
+      return;
+    }
     
     setIsLoading(true);
     console.log("Processing voice command:", transcript);
@@ -35,19 +62,28 @@ export const useVoiceCommandProcessor = (
       const currentTranscript = transcript;
       lastProcessedRef.current = currentTranscript;
       
+      // Add to command history
+      commandHistoryRef.current = [
+        ...commandHistoryRef.current.slice(-9), // Keep last 9 commands
+        { command: currentTranscript, timestamp: Date.now() }
+      ];
+      
+      // Reset retry counter
+      processingRetryCountRef.current = 0;
+      
       // Clear timeout if it exists
       if (processingTimeoutRef.current) {
         clearTimeout(processingTimeoutRef.current);
         processingTimeoutRef.current = null;
       }
       
-      // Simplify repetitive phrases in transcript
-      const simplifiedTranscript = simplifyRepetitiveTranscript(currentTranscript);
-      console.log("Simplified transcript:", simplifiedTranscript);
+      // Intelligent processing of the transcript
+      const processedTranscript = preprocessTranscript(currentTranscript);
+      console.log("Processed transcript:", processedTranscript);
       
-      // Process the command with simplified transcript
+      // Process the command with the processed transcript
       const responseText = await processVoiceCommand(
-        simplifiedTranscript,
+        processedTranscript,
         navigate,
         addMessageToHistory,
         speakResponse,
@@ -84,13 +120,33 @@ export const useVoiceCommandProcessor = (
     }
   }, [transcript, navigate, addMessageToHistory, speakResponse, currentPage, setTranscript, isLoading]);
   
+  // Preprocess transcript for better command recognition
+  const preprocessTranscript = (text: string): string => {
+    if (!text) return text;
+    
+    // Step 1: Remove filler words and common speech artifacts
+    let processed = text.replace(/\b(um|uh|like|you know|I mean|actually)\b/gi, ' ');
+    
+    // Step 2: Fix common speech recognition errors
+    processed = processed.replace(/go to the home/gi, 'go to home');
+    processed = processed.replace(/go to the profile/gi, 'go to profile');
+    processed = processed.replace(/can you (go|take me|navigate)/gi, '$1');
+    
+    // Step 3: Simplify repetitive phrases and words
+    processed = simplifyRepetitiveTranscript(processed);
+    
+    // Step 4: Normalize spacing
+    processed = processed.replace(/\s+/g, ' ').trim();
+    
+    return processed;
+  };
+  
   // Function to simplify repetitive phrases in transcript
   const simplifyRepetitiveTranscript = (text: string): string => {
     if (!text) return text;
     
     // Split by spaces
     const words = text.split(' ');
-    const result: string[] = [];
     const seenPhrases = new Set<string>();
     
     // For longer repetitive phrases (3-4 words)
@@ -102,12 +158,10 @@ export const useVoiceCommandProcessor = (
         
         // Count occurrences of this phrase in the text
         let count = 0;
-        let position = -1;
         let pos = text.toLowerCase().indexOf(phrase);
         
         while (pos !== -1) {
           count++;
-          position = pos;
           pos = text.toLowerCase().indexOf(phrase, pos + 1);
         }
         
@@ -128,17 +182,19 @@ export const useVoiceCommandProcessor = (
       simplifiedText = simplifiedText.replace(regex, `${phrase} `);
     });
     
-    // Check for single word repetition
+    // Check for single word repetition (more than 2 letters to avoid removing "I I" etc)
     const wordMap: Record<string, number> = {};
     words.forEach(word => {
       const lowerWord = word.toLowerCase();
-      wordMap[lowerWord] = (wordMap[lowerWord] || 0) + 1;
+      if (lowerWord.length > 1) { // Only track words with more than 1 letter
+        wordMap[lowerWord] = (wordMap[lowerWord] || 0) + 1;
+      }
     });
     
     // If a word repeats more than 3 times, simplify further
     Object.entries(wordMap).forEach(([word, count]) => {
-      if (count > 3 && word.length > 2) {
-        const regex = new RegExp(`(${word}\\s*){3,}`, 'gi');
+      if (count > 2 && word.length > 2) {
+        const regex = new RegExp(`(${word}\\s*){2,}`, 'gi');
         simplifiedText = simplifiedText.replace(regex, `${word} `);
       }
     });
@@ -150,6 +206,7 @@ export const useVoiceCommandProcessor = (
   const resetCommand = useCallback(() => {
     lastProcessedRef.current = '';
     setResponse('');
+    processingRetryCountRef.current = 0;
     if (processingTimeoutRef.current) {
       clearTimeout(processingTimeoutRef.current);
       processingTimeoutRef.current = null;

@@ -85,19 +85,52 @@ const VoiceAssistant = () => {
     }
   }, [isOpen, stopListening, stopSpeaking]);
   
-  // Handle speech synthesis errors by retrying with fallback
+  // Handle speech synthesis errors by implementing an advanced retry mechanism
   useEffect(() => {
     const handleSpeechSynthesisError = (e: any) => {
-      console.log("Speech synthesis error detected, attempting fallback");
+      console.log("Speech synthesis error detected, attempting recovery");
+      
       if (response && !isSpeaking && autoSpeaking) {
-        // Try using a different voice or web speech API fallback
-        setTimeout(() => {
-          try {
-            speakResponse(response);
-          } catch (err) {
-            console.error("Fallback speech synthesis also failed:", err);
+        // Implement progressive fallback strategy
+        let attemptCount = 0;
+        const maxAttempts = 3;
+        
+        const attemptSpeech = () => {
+          if (attemptCount >= maxAttempts) {
+            console.error("Max speech synthesis retry attempts reached");
+            // If voice fails, display a toast so user still gets the information
+            toast({
+              title: "Voice Output Failed",
+              description: response.length > 60 ? response.substring(0, 60) + "..." : response,
+              duration: 5000,
+            });
+            return;
           }
-        }, 300);
+          
+          setTimeout(() => {
+            try {
+              // Try with a delay that increases with each attempt
+              console.log(`Speech synthesis retry attempt ${attemptCount + 1}`);
+              
+              // If this isn't the first attempt, try with a different voice
+              if (attemptCount > 0 && voices.length > 1) {
+                // Use a different voice for retry
+                const fallbackVoice = voices.find(v => v !== currentVoice) || voices[0];
+                speakResponse(response, detectedLanguage, fallbackVoice);
+              } else {
+                speakResponse(response);
+              }
+              
+              attemptCount++;
+            } catch (err) {
+              console.error(`Fallback speech synthesis attempt ${attemptCount + 1} failed:`, err);
+              attemptCount++;
+              attemptSpeech(); // Try again with next strategy
+            }
+          }, 300 * (attemptCount + 1)); // Progressive backoff
+        };
+        
+        attemptSpeech();
       }
     };
     
@@ -106,7 +139,7 @@ const VoiceAssistant = () => {
     return () => {
       window.removeEventListener('speech-synthesis-error', handleSpeechSynthesisError);
     };
-  }, [response, isSpeaking, autoSpeaking, speakResponse]);
+  }, [response, isSpeaking, autoSpeaking, speakResponse, voices, currentVoice, detectedLanguage]);
   
   return (
     <>
