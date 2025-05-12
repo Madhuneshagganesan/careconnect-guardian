@@ -17,6 +17,7 @@ export const useVoiceAssistantState = () => {
   const processingRef = useRef(false);
   const speechPauseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialized = useRef(false);
+  const stateStabilizedRef = useRef(false);
   
   // Initialize hooks
   const { 
@@ -47,15 +48,15 @@ export const useVoiceAssistantState = () => {
     clearHistory
   } = useConversationHistory();
 
-  // Initialize command processor
+  // Initialize command processor with a unified approach to speaking
   const speakResponseCallback = useCallback((text: string) => {
-    // Using a small delay to ensure audio context is ready
+    // Using a larger delay to ensure audio context is ready
     setTimeout(() => {
-      if (text && text.trim()) {
+      if (text && text.trim() && !isSpeaking) {
         speakResponse(text);
       }
-    }, 100);
-  }, [speakResponse]);
+    }, 300);
+  }, [speakResponse, isSpeaking]);
   
   const { 
     isLoading, 
@@ -78,6 +79,8 @@ export const useVoiceAssistantState = () => {
     
     if (open) {
       // When opening
+      stateStabilizedRef.current = false; // Mark state as unstable
+      
       setTimeout(() => {
         setTranscript('');
         resetCommand();
@@ -90,25 +93,31 @@ export const useVoiceAssistantState = () => {
         
         // First ensure recognition is stopped
         stopListening();
-        stopSpeaking();
         
-        // Then wait for cleanup before starting again
+        // Also ensure speech is stopped
         setTimeout(() => {
-          isInitialized.current = true;
-          processingRef.current = false;
+          stopSpeaking();
           
-          try {
-            // Only start listening if not already listening
-            if (!isListening) {
-              startListening();
+          // Then wait for cleanup before starting again
+          setTimeout(() => {
+            isInitialized.current = true;
+            processingRef.current = false;
+            stateStabilizedRef.current = true; // Mark state as stable
+            
+            try {
+              // Only start listening if not already listening
+              if (!isListening) {
+                startListening();
+              }
+            } catch (e) {
+              console.error('Failed to start listening on dialog open:', e);
             }
-          } catch (e) {
-            console.error('Failed to start listening on dialog open:', e);
-          }
-        }, 800); // Increased delay to ensure proper cleanup
+          }, 1000); // Increased delay to ensure proper cleanup
+        }, 500);
       }, 300);
     } else {
       // When closing, perform thorough cleanup
+      stateStabilizedRef.current = false; // Mark state as unstable
       clearHistory();
       setResponse('');
       setTranscript('');
@@ -117,10 +126,11 @@ export const useVoiceAssistantState = () => {
       
       try {
         // Stop in sequence to avoid conflicts
-        stopListening();
+        stopSpeaking();
+        
         setTimeout(() => {
-          stopSpeaking();
-        }, 100);
+          stopListening();
+        }, 500);
       } catch (e) {
         console.error('Error during cleanup on close:', e);
       }
@@ -145,13 +155,15 @@ export const useVoiceAssistantState = () => {
     };
   }, []);
   
-  // Auto-speak responses when enabled
+  // Auto-speak responses when enabled with improved timing
   useEffect(() => {
-    if (autoSpeaking && response && !isSpeaking && !isLoading) {
+    if (autoSpeaking && response && !isSpeaking && !isLoading && stateStabilizedRef.current) {
       try {
         setTimeout(() => {
-          speakResponse(response);
-        }, 300);
+          if (!isSpeaking && response) {
+            speakResponse(response);
+          }
+        }, 600); // Increased delay for stability
       } catch (e) {
         console.error('Error auto-speaking response:', e);
       }
@@ -160,8 +172,8 @@ export const useVoiceAssistantState = () => {
   
   // Process command when speech pauses with improved timing
   useEffect(() => {
-    // Only set up listener when dialog is open
-    if (!isOpen || !isInitialized.current) return;
+    // Only set up listener when dialog is open and state is stabilized
+    if (!isOpen || !isInitialized.current || !stateStabilizedRef.current) return;
     
     // Process after pause in speech
     if (transcript && transcript.trim() && isListening && !isLoading && !processingRef.current) {
@@ -172,7 +184,7 @@ export const useVoiceAssistantState = () => {
       
       // Set new timer with increased pause time
       speechPauseTimerRef.current = setTimeout(() => {
-        if (!isLoading && transcript.trim() && !processingRef.current) {
+        if (!isLoading && transcript.trim() && !processingRef.current && stateStabilizedRef.current) {
           // Set processing flag to prevent multiple processing
           processingRef.current = true;
           
@@ -193,7 +205,12 @@ export const useVoiceAssistantState = () => {
             setResponse(errorMessage);
             
             if (autoSpeaking) {
-              speakResponse(errorMessage);
+              // Wait for system to stabilize before speaking
+              setTimeout(() => {
+                if (!isSpeaking) {
+                  speakResponse(errorMessage);
+                }
+              }, 500);
             }
           } finally {
             // Reset processing flag after delay to allow new commands
@@ -203,7 +220,7 @@ export const useVoiceAssistantState = () => {
             }, 2000);
           }
         }
-      }, 1500); // Increased pause time for better accuracy
+      }, 2000); // Increased pause time for better accuracy
     }
     
     return () => {
@@ -221,18 +238,21 @@ export const useVoiceAssistantState = () => {
     isOpen, 
     autoSpeaking, 
     speakResponse,
-    setTranscript
+    setTranscript,
+    isSpeaking
   ]);
 
   // Cleanup on unmount with improved stability
   useEffect(() => {
     return () => {
-      // First stop listening, then stop speaking with a delay
+      // First stop speaking
       try {
-        stopListening();
+        stopSpeaking();
+        
+        // Then stop listening with a delay
         setTimeout(() => {
-          stopSpeaking();
-        }, 100);
+          stopListening();
+        }, 500);
       } catch (e) {
         console.error('Error during cleanup on unmount:', e);
       }
@@ -247,11 +267,14 @@ export const useVoiceAssistantState = () => {
   // If dialog is closed unexpectedly, make sure we clean up
   useEffect(() => {
     if (!isOpen && isInitialized.current) {
-      stopListening();
+      // First stop speaking
+      stopSpeaking();
+      
+      // Then stop listening with a delay
       setTimeout(() => {
-        stopSpeaking();
-      }, 100);
-      setTranscript('');
+        stopListening();
+        setTranscript('');
+      }, 500);
     }
   }, [isOpen, stopListening, stopSpeaking, setTranscript]);
 
@@ -271,7 +294,7 @@ export const useVoiceAssistantState = () => {
     isSpeaking,
     response,
     processCommand,
-    speakResponse: speakResponseCallback,
+    speakResponse,
     stopSpeaking,
     voices,
     currentVoice,

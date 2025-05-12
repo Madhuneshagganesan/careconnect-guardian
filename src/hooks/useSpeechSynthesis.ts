@@ -166,8 +166,26 @@ export const useSpeechSynthesis = () => {
                 
                 newUtterance.rate = 1.0;
                 newUtterance.pitch = 1.0;
-                newUtterance.onend = utterance.onend;
-                newUtterance.onerror = utterance.onerror;
+                
+                // Fixed: Create new handlers instead of referencing original ones
+                newUtterance.onend = () => {
+                  setIsSpeaking(false);
+                  currentUtteranceRef.current = null;
+                  processingUtteranceRef.current = false;
+                  
+                  // Process next item in queue
+                  setTimeout(() => processQueue(), 300);
+                };
+                
+                newUtterance.onerror = (retryError) => {
+                  console.error('Error during speech synthesis retry:', retryError);
+                  setIsSpeaking(false);
+                  currentUtteranceRef.current = null;
+                  processingUtteranceRef.current = false;
+                  
+                  // Process next item in queue
+                  setTimeout(() => processQueue(), 300);
+                };
                 
                 window.speechSynthesis.speak(newUtterance);
                 currentUtteranceRef.current = newUtterance;
@@ -208,8 +226,26 @@ export const useSpeechSynthesis = () => {
         const firstSentence = new SpeechSynthesisUtterance(sentences[0]);
         if (currentVoice) firstSentence.voice = currentVoice;
         firstSentence.rate = 1.0;
-        firstSentence.onend = utterance.onend;
-        firstSentence.onerror = utterance.onerror;
+        
+        // Fixed: Create new handlers instead of referencing
+        firstSentence.onend = () => {
+          setIsSpeaking(false);
+          currentUtteranceRef.current = null;
+          processingUtteranceRef.current = false;
+          
+          // Process next item in queue
+          setTimeout(() => processQueue(), 300);
+        };
+        
+        firstSentence.onerror = (errorEvent) => {
+          console.error('Speech synthesis first sentence error:', errorEvent);
+          setIsSpeaking(false);
+          currentUtteranceRef.current = null;
+          processingUtteranceRef.current = false;
+          
+          // Process next item in queue
+          setTimeout(() => processQueue(), 300);
+        };
         
         window.speechSynthesis.speak(firstSentence);
         currentUtteranceRef.current = firstSentence;
@@ -236,7 +272,7 @@ export const useSpeechSynthesis = () => {
           }
         }, 5000);
         
-        // Clear interval when speech ends
+        // Fixed: Create new handlers instead of referencing
         utterance.onend = () => {
           clearInterval(intervalId);
           setIsSpeaking(false);
@@ -247,9 +283,15 @@ export const useSpeechSynthesis = () => {
           setTimeout(() => processQueue(), 300);
         };
         
-        utterance.onerror = (event) => {
+        utterance.onerror = (errorEvent) => {
           clearInterval(intervalId);
-          utterance.onerror(event); // Call the original error handler
+          console.error('Speech synthesis error in Chrome workaround:', errorEvent);
+          setIsSpeaking(false);
+          currentUtteranceRef.current = null;
+          processingUtteranceRef.current = false;
+          
+          // Process next item in queue
+          setTimeout(() => processQueue(), 300);
         };
       }
       
@@ -262,19 +304,7 @@ export const useSpeechSynthesis = () => {
       // Process next item in queue
       setTimeout(() => processQueue(), 300);
     }
-  }, [voices, currentVoice, isSpeaking]);
-  
-  // Public speak response function
-  const speakResponse = useCallback((text: string) => {
-    if (!text || !text.trim()) return;
-    
-    // Add to queue and process
-    utterancesQueue.current.push({ text });
-    
-    if (!processingUtteranceRef.current) {
-      processQueue();
-    }
-  }, [processQueue]);
+  }, [voices, currentVoice, isSpeaking, processQueue]);
   
   // Stop speaking with improved cleanup
   const stopSpeaking = useCallback(() => {
@@ -296,6 +326,18 @@ export const useSpeechSynthesis = () => {
       }
     }
   }, []);
+  
+  // Public speak response function
+  const speakResponse = useCallback((text: string) => {
+    if (!text || !text.trim()) return;
+    
+    // Add to queue and process
+    utterancesQueue.current.push({ text });
+    
+    if (!processingUtteranceRef.current) {
+      processQueue();
+    }
+  }, [processQueue]);
   
   const setVoice = useCallback((voice: SpeechSynthesisVoice) => {
     setCurrentVoice(voice);

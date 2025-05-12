@@ -35,24 +35,28 @@ const VoiceAssistant = () => {
   const handleOpenDialog = useCallback(() => {
     try {
       // First ensure any existing sessions are stopped
-      stopListening();
       stopSpeaking();
       
-      // Then open the dialog - the useVoiceAssistantState will handle initialization
+      // Then stop listening with a delay to ensure proper cleanup
       setTimeout(() => {
-        setIsOpen(true);
+        stopListening();
         
-        // Toast to help user know what to do (show only once per session)
-        if (!sessionStorage.getItem('voiceAssistantHelpShown')) {
-          sessionStorage.setItem('voiceAssistantHelpShown', 'true');
-          setTimeout(() => {
-            toast({
-              title: "Voice Assistant Ready",
-              description: "Say 'Help' to learn about available commands",
-            });
-          }, 1500);
-        }
-      }, 200);
+        // Then open the dialog with a longer delay for stable state
+        setTimeout(() => {
+          setIsOpen(true);
+          
+          // Toast to help user know what to do (show only once per session)
+          if (!sessionStorage.getItem('voiceAssistantHelpShown')) {
+            sessionStorage.setItem('voiceAssistantHelpShown', 'true');
+            setTimeout(() => {
+              toast({
+                title: "Voice Assistant Ready",
+                description: "Say 'Help' to learn about available commands",
+              });
+            }, 1500);
+          }
+        }, 500);
+      }, 300);
     } catch (error) {
       console.error('Failed to open voice assistant:', error);
       toast({
@@ -63,19 +67,20 @@ const VoiceAssistant = () => {
     }
   }, [setIsOpen, stopListening, stopSpeaking]);
 
-  // Clean up resources when voice assistant closes
+  // Clean up resources with improved sequence when voice assistant closes
   useEffect(() => {
     if (!isOpen) {
+      // First stop speaking
+      stopSpeaking();
+      
+      // Then stop listening with a delay to ensure they don't conflict
       setTimeout(() => {
         stopListening();
-        setTimeout(() => {
-          stopSpeaking();
-        }, 100);
-      }, 200);
+      }, 500);
     }
   }, [isOpen, stopListening, stopSpeaking]);
   
-  // Handle speech synthesis errors by implementing a simplified retry mechanism
+  // Handle speech synthesis errors without recursive calls
   useEffect(() => {
     const handleSpeechSynthesisError = () => {
       console.log("Speech synthesis error detected");
@@ -85,7 +90,10 @@ const VoiceAssistant = () => {
         // Short delay before retry
         setTimeout(() => {
           try {
-            speakResponse(response);
+            // Only try to speak if we're not already speaking
+            if (!isSpeaking) {
+              speakResponse(response);
+            }
           } catch (err) {
             console.error('Fallback speech synthesis attempt failed:', err);
             // If speech fails completely, show a toast with the response
@@ -95,7 +103,7 @@ const VoiceAssistant = () => {
               duration: 5000,
             });
           }
-        }, 300);
+        }, 800); // Increased delay for better stability
       }
     };
     
