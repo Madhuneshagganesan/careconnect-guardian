@@ -116,7 +116,7 @@ const VoiceAssistant = () => {
               if (attemptCount > 0 && voices.length > 1) {
                 // Use a different voice for retry
                 const fallbackVoice = voices.find(v => v !== currentVoice) || voices[0];
-                speakResponse(response, detectedLanguage, fallbackVoice);
+                speakResponse(response);
               } else {
                 speakResponse(response);
               }
@@ -139,7 +139,7 @@ const VoiceAssistant = () => {
     return () => {
       window.removeEventListener('speech-synthesis-error', handleSpeechSynthesisError);
     };
-  }, [response, isSpeaking, autoSpeaking, speakResponse, voices, currentVoice, detectedLanguage]);
+  }, [response, isSpeaking, autoSpeaking, speakResponse, voices, currentVoice]);
   
   return (
     <>
